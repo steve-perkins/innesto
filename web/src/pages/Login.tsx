@@ -33,14 +33,17 @@ export default function Login() {
               onSuccess={(cred) => {
                 setError(null)
                 if (!cred.credential) { setError('Google returned no credential'); return }
-                signIn(cred.credential).catch((e) => setError((e as Error).message))
+                signIn(cred.credential).catch((e) => {
+                  console.error('Innesto sign-in failed:', e)
+                  setError(`Sign-in refused by the server: ${(e as Error).message}`)
+                })
               }}
               onError={() => setError('Google sign-in failed')}
               useOneTap
               theme="filled_blue" shape="pill" text="signin_with" />
           </GoogleOAuthProvider>
         )}
-        {error && <p className="error">{error}</p>}
+        {error && <p className="error login-error" role="alert">{error}</p>}
         <p className="muted small">Access is by invitation: only listed Google accounts can sign in.</p>
       </div>
     </main>

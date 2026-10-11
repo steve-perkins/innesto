@@ -9,6 +9,7 @@ web app in production.
 
 from __future__ import annotations
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Request
@@ -28,6 +29,14 @@ from .routes import auth, books, jobs, progress, sidecars, vocab
 async def lifespan(app: FastAPI):
     config.ensure_dirs()
     init_db()
+    log = logging.getLogger("innesto")
+    log.info("env=%s google_client_id=%s allowlist=%d account(s)", config.ENV,
+             "set" if config.GOOGLE_CLIENT_ID else "MISSING", len(config.ALLOWED_EMAILS))
+    problems = config.validate_settings()
+    for p in problems:
+        log.warning("configuration: %s", p)
+    if problems and config.IS_PRODUCTION:
+        raise RuntimeError("Refusing to start with incomplete configuration: " + "; ".join(problems))
     worker.start()
     if not config.DISABLE_MAINTENANCE:
         start_scheduler()

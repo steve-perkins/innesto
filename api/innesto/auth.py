@@ -110,7 +110,7 @@ def sign_in_with_google(session: Session, id_token: str) -> tuple[User, str]:
         raise HTTPException(401, f"Google sign-in failed: {exc}") from exc
     email = claims["email"]
     if not is_allowed(email):
-        log.warning("sign-in refused for %s (not on the allowlist)", email)
+        log.warning("sign-in refused for %s (allowlist has %d entries)", email, len(config.ALLOWED_EMAILS))
         raise HTTPException(403, f"{email} is not on the guest list for this Innesto instance.")
 
     user = session.get(User, claims["sub"])
