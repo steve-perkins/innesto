@@ -5,6 +5,9 @@
 // - network ("Google …") voices fail silently when offline, and some
 //   browsers only honour `lang` if a matching voice is also set explicitly.
 
+// macOS ships character voices in every language; never pick them automatically.
+const NOVELTY = /^(Eddy|Flo|Grandma|Grandpa|Reed|Rocko|Sandy|Shelley|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Albert|Fred|Junior|Kathy|Ralph)\b/i
+
 let voices: SpeechSynthesisVoice[] = []
 let current: SpeechSynthesisUtterance | null = null   // keep a reference: see GC note
 
@@ -37,6 +40,7 @@ export function voicesFor(lang: string): SpeechSynthesisVoice[] {
     .sort((a, b) => score(b) - score(a))
   function score(v: SpeechSynthesisVoice): number {
     return (norm(v.lang) === full ? 4 : 0) + (v.localService ? 2 : 0) + (v.default ? 1 : 0)
+      - (NOVELTY.test(v.name) ? 8 : 0)
   }
 }
 
