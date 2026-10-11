@@ -152,7 +152,7 @@ button:disabled { opacity: 0.5; cursor: default; }
 .level-controls { display: flex; align-items: center; gap: 2px; font-size: 0.8rem; }
 .level-controls span { min-width: 2.2em; text-align: center; color: var(--muted); }
 .level-controls button.icon { min-width: 28px; padding: 4px 6px; }
-@media (max-width: 520px) { .level-controls span { min-width: 1.8em; } .reader .topbar h1 { font-size: 1rem; } }
+@media (max-width: 520px) { .level-controls span { min-width: 1.8em; } .reader .topbar h1 { display: none; } .reader .topbar { gap: 6px; } }
 
 /* Vocabulary */
 .popover-actions { display: flex; gap: 8px; margin-top: 4px; }
