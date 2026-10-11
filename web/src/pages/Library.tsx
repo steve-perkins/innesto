@@ -94,8 +94,8 @@ export default function Library() {
         <button className="primary" disabled={busy} onClick={() => fileInput.current?.click()}>
           {busy ? 'Uploading…' : 'Add EPUB'}
         </button>
-        <Link to="/vocabulary"><button title="Vocabulary">Vocabulary</button></Link>
-        <Link to="/settings"><button className="icon" title="Settings" aria-label="Settings">⚙︎</button></Link>
+        <Link to="/vocabulary" state={{ from: '/' }}><button title="Vocabulary">Vocabulary</button></Link>
+        <Link to="/settings" state={{ from: '/' }}><button className="icon" title="Settings" aria-label="Settings">⚙︎</button></Link>
       </header>
       <main className="page"
             onDragOver={(e) => e.preventDefault()}

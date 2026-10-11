@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { api, type VocabEntry } from '../api/client'
 import { useSettings } from '../store/settings'
 import { useVocab } from '../store/vocab'
@@ -10,6 +10,8 @@ export default function Vocabulary() {
   const [rows, setRows] = useState<VocabEntry[] | null>(null)
   const [filter, setFilter] = useState<'all' | 'learning' | 'known'>('all')
   const [error, setError] = useState<string | null>(null)
+  const navigate = useNavigate()
+  const from = (useLocation().state as { from?: string } | null)?.from
 
   const refresh = useCallback(async () => {
     try { setRows(await api.listVocab(lang)); setError(null) }
@@ -36,7 +38,7 @@ export default function Vocabulary() {
         <Link to="/" className="brand">Innesto</Link>
         <h1 className="muted" style={{ fontWeight: 400 }}>Vocabulary · {lang.toUpperCase()}</h1>
         <a href={api.vocabCsvUrl(lang)} download><button>Export CSV</button></a>
-        <Link to="/"><button>Library</button></Link>
+        <button onClick={() => navigate(from ?? '/')}>‹ Back</button>
       </header>
       <main className="page">
         {error && <p className="error">{error}</p>}
