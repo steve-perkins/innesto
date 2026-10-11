@@ -12,7 +12,7 @@ clauses) and **Density** (how many swaps per page).
 
 The approach is the **diglot weave** technique: reading native-language text in which a growing share
 of the words and phrases has been replaced with the target language, so that vocabulary and grammar
-are absorbed in context. The first target language is Italian; the design is language-neutral.
+are absorbed in context. Italian and Spanish are supported so far; the design is language-neutral.
 
 ## How it works
 
@@ -61,8 +61,13 @@ Processing needs a CTranslate2 model for the language pair under `api/models/<sr
 The simplest source is an Argos Translate package (CT2 model + sentencepiece, no PyTorch):
 
 ```bash
-cd api && .venv/bin/python -m scripts.fetch_model en it
+cd api && .venv/bin/python -m scripts.fetch_model en it   # Italian
+cd api && .venv/bin/python -m scripts.fetch_model en es   # Spanish
 ```
+
+Supported target languages are listed in `api/innesto/config.py` (`SUPPORTED_TARGETS`); adding one
+means adding it there, fetching its model, and installing the matching spaCy model
+(`python -m spacy download xx_core_news_sm`) for target-lemma extraction.
 
 Until a model is present, uploads are not processed automatically; the library shows
 "Not processed" and the **Process** button reports the missing model. `INNESTO_TRANSLATION_ENGINE=echo`

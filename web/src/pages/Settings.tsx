@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { api, type Language } from '../api/client'
 import { speak, ttsAvailable, voicesFor } from '../reader/tts'
 import { defaultSettings, useSettings, type Flow, type Theme } from '../store/settings'
 
@@ -34,14 +35,24 @@ function VoicePicker({ lang, value, onChange }: { lang: string; value: string | 
       </div>
       <div className="field">
         <label>Test</label>
-        <button onClick={() => speak('Buongiorno! John sta leggendo un libro.', lang, value)}>🔊 Play sample</button>
+        <button onClick={() => speak(SAMPLES[lang] ?? 'John is reading a book.', lang, value)}>🔊 Play sample</button>
       </div>
     </>
   )
 }
 
+const FALLBACK_LANGUAGES: Language[] = [{ code: 'it', name: 'Italian', available: true }, { code: 'es', name: 'Spanish', available: true }]
+
+const SAMPLES: Record<string, string> = {
+  it: 'Buongiorno! John sta leggendo un libro.',
+  es: '¡Buenos días! John está leyendo un libro.',
+}
+
 export default function Settings() {
   const s = useSettings()
+  const [languages, setLanguages] = useState<Language[]>(FALLBACK_LANGUAGES)
+  useEffect(() => { api.languages().then(setLanguages).catch(() => undefined) }, [])
+  const currentLang = languages.find((l) => l.code === s.targetLang)
   return (
     <>
       <header className="topbar">
@@ -99,13 +110,22 @@ export default function Settings() {
             <input id="swapColor" type="color" value={s.swapColor}
                    onChange={(e) => s.set({ swapColor: e.target.value })} />
           </div>
-          <VoicePicker lang={s.targetLang} value={s.voiceURI} onChange={(v) => s.set({ voiceURI: v })} />
           <div className="field">
             <label htmlFor="targetLang">Target language</label>
-            <select id="targetLang" value={s.targetLang} onChange={(e) => s.set({ targetLang: e.target.value })}>
-              <option value="it">Italian</option>
+            <select id="targetLang" value={s.targetLang} onChange={(e) => s.set({ targetLang: e.target.value, voiceURI: null })}>
+              {languages.map((l) => (
+                <option key={l.code} value={l.code}>{l.name}{l.available ? '' : ' (model not installed)'}</option>
+              ))}
             </select>
+            {currentLang && !currentLang.available && (
+              <div className="hint">
+                No translation model is installed for {currentLang.name}. On the server run
+                {' '}<code>python -m scripts.fetch_model en {currentLang.code}</code>, then process your books from the library.
+              </div>
+            )}
+            <div className="hint">Each language has its own translations and vocabulary; switching does not lose anything.</div>
           </div>
+          <VoicePicker lang={s.targetLang} value={s.voiceURI} onChange={(v) => s.set({ voiceURI: v })} />
         </section>
 
         <section>

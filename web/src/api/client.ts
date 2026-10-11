@@ -51,6 +51,8 @@ export interface VocabEntry {
 
 export interface VocabSummary { lang: string; known: string[]; learning: string[] }
 
+export interface Language { code: string; name: string; available: boolean }
+
 export interface ReadingPosition {
   book_id: string
   cfi: string | null
@@ -75,11 +77,12 @@ export const api = {
   health: () => request<{ status: string; version: string }>('/api/health'),
   listBooks: () => request<Book[]>('/api/books'),
   getBook: (id: string) => request<Book>(`/api/books/${id}`),
-  uploadBook: (file: File) => {
+  uploadBook: (file: File, targetLang: string) => {
     const body = new FormData()
     body.append('file', file)
-    return request<Book>('/api/books', { method: 'POST', body })
+    return request<Book>(`/api/books?target_lang=${encodeURIComponent(targetLang)}`, { method: 'POST', body })
   },
+  languages: () => request<Language[]>('/api/languages'),
   deleteBook: (id: string) => request<void>(`/api/books/${id}`, { method: 'DELETE' }),
   bookFileUrl: (id: string) => `/api/books/${id}/file`,
   coverUrl: (id: string) => `/api/books/${id}/cover`,
