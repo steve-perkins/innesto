@@ -14,6 +14,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -44,6 +45,10 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Innesto", version=__version__, lifespan=lifespan)
+
+# JSON (sidecar sections, library) compresses 5-10x; EPUBs are already zipped
+# and small enough that the extra pass does not matter.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 # Dev convenience: the Vite dev server proxies /api, but allow direct calls too.
 app.add_middleware(

@@ -105,3 +105,21 @@ def test_languages_and_upload_target(echo_env, sample_epub):
     assert job["status"] == "done"
     sc = client.get(f"/api/books/{r.json()['id']}/sidecars/active", params={"lang": "es"}).json()
     assert sc["targetLang"] == "es"
+
+
+def test_sidecar_meta_and_sections(echo_env, sample_epub):
+    client = echo_env
+    book = upload(client, sample_epub)
+    job = wait_for_job(client, client.get(f"/api/books/{book['id']}/jobs").json()[0]["id"])
+    meta = client.get(f"/api/books/{book['id']}/sidecars/active/meta", params={"lang": "it"}).json()
+    assert meta["id"] == job["sidecar_id"] and meta["targetLang"] == "it"
+    assert [s["index"] for s in meta["sections"]] == [0, 1, 2]
+    assert "candidates" not in meta["sections"][1] and meta["sections"][1]["candidateCount"] > 10
+    r = client.get(f"/api/sidecars/{meta['id']}/sections/1")
+    assert r.status_code == 200 and "immutable" in r.headers["cache-control"]
+    section = r.json()
+    assert section["index"] == 1 and len(section["candidates"]) == meta["sections"][1]["candidateCount"]
+    assert client.get(f"/api/sidecars/{meta['id']}/sections/99").status_code == 404
+    # Large JSON responses are gzip-compressed when the client accepts it.
+    r = client.get(f"/api/sidecars/{meta['id']}/sections/1", headers={"Accept-Encoding": "gzip"})
+    assert r.headers.get("content-encoding") == "gzip"

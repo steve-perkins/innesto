@@ -7,7 +7,7 @@ import { applyLayout, bookTitle, createView, ensureFontCss, type Location, type 
 import { swapIdOf, unweave, weave } from '../reader/weave'
 import { getBookFile, loadProgress, saveProgress } from '../store/cache'
 import { useSettings } from '../store/settings'
-import { loadSidecar, type SidecarStatus } from '../store/sidecar'
+import { loadSectionCandidates, loadSidecar, prefetchSections, type SidecarStatus } from '../store/sidecar'
 import { useVocab } from '../store/vocab'
 
 type Status = { kind: 'loading'; text: string } | { kind: 'ready' } | { kind: 'error'; text: string }
@@ -87,9 +87,18 @@ export default function Reader() {
       setWeaveInfo('Text differs from sidecar for this section')
       return
     }
-    const chosen = selectCandidates(section.candidates, {
+    setWeaveInfo('Loading translations…')
+    let candidates
+    try {
+      candidates = await loadSectionCandidates(sc.meta.id, index)
+    } catch (err) {
+      setWeaveInfo((err as Error).message)
+      return
+    }
+    prefetchSections(sc.meta.id, [index + 1, index + 2, index - 1].filter((i) => sc.sections.has(i)))
+    const chosen = selectCandidates(candidates, {
       level: s.level, density: s.density, wordCount: section.wordCount,
-      seed: `${sc.sidecar.bookId}:${index}:${s.level}:${s.density}`,
+      seed: `${sc.meta.bookId}:${index}:${s.level}:${s.density}`,
       known: vocabRef.current.known, learning: vocabRef.current.learning,
     })
     const result = weave(doc, chosen, stream)
@@ -142,10 +151,15 @@ export default function Reader() {
       })
       void weaveDoc(doc, index)
     }
+    const lastPage = { key: '' }
     const onRelocate = (e: Event) => {
       const detail = (e as CustomEvent<Location>).detail
       setLoc(detail)
-      setPopover(null)
+      // A tap on a touch screen makes the paginator snap and relocate without
+      // changing page; only a real page/section change dismisses the popover.
+      const pageKey = `${detail.section?.current ?? ''}:${detail.location?.current ?? detail.cfi ?? ''}`
+      if (pageKey !== lastPage.key) setPopover(null)
+      lastPage.key = pageKey
       window.clearTimeout(saveTimer.current)
       saveTimer.current = window.setTimeout(() => {
         void saveProgress(id, detail.cfi ?? null, Number.isFinite(detail.fraction) ? detail.fraction : 0)
@@ -154,7 +168,7 @@ export default function Reader() {
 
     ;(async () => {
       try {
-        setStatus({ kind: 'loading', text: 'Downloading…' })
+        setStatus({ kind: 'loading', text: 'Loading book…' })
         const [blob, sc] = await Promise.all([
           getBookFile(id), loadSidecar(id, settingsRef.current.targetLang),
           vocabRef.current.load(settingsRef.current.targetLang), ensureFontCss(),

@@ -45,7 +45,11 @@ function cssVar(name: string): string {
 /** CSS injected into every book section. Colors follow the app theme. */
 export function bookCss(s: Settings): string {
   const fg = cssVar('--book-fg')
+  const bg = cssVar('--book-bg')
   const link = cssVar('--book-link')
+  const dark = document.documentElement.dataset.theme === 'dark'
+  // The default swap green is tuned for light pages; lift it on dark ones.
+  const swap = dark ? `color-mix(in srgb, ${s.swapColor} 55%, white)` : s.swapColor
   const stack = fontStack(s.fontFamily)
   const fontRule = stack
     ? `${fontCss}\n    body, body :not(pre, code, kbd, samp, tt, var, svg, math) { font-family: ${stack} !important; }`
@@ -53,20 +57,30 @@ export function bookCss(s: Settings): string {
   return `
     @namespace epub "http://www.idpf.org/2007/ops";
     ${fontRule}
-    html { color: ${fg}; font-size: ${s.fontSize}% !important; }
-    body { color: inherit; background: transparent !important; }
+    /* Theme colours win over the publisher's stylesheet (the way reading apps
+       do), so dark mode is dark everywhere, not just around the page. */
+    html { color-scheme: ${dark ? 'dark' : 'light'}; font-size: ${s.fontSize}% !important; }
+    html, body { color: ${fg} !important; background: ${bg} !important; }
+    body :not(img, svg, video, canvas, picture, .innesto) {
+      color: inherit !important;
+      background-color: transparent !important;
+      border-color: currentColor;
+    }
+    a:link, a:visited { color: ${link} !important; }
     p, li, dd, blockquote { line-height: ${s.lineHeight} !important; }
-    a:link, a:visited { color: ${link}; }
-    /* Diglot-weave swaps (phase 3). */
+    /* Diglot-weave swaps. */
     .innesto {
-      color: ${s.swapColor};
+      color: ${swap} !important;
       cursor: pointer;
       text-decoration: underline dotted;
       text-decoration-thickness: 1px;
       text-underline-offset: 3px;
       border-radius: 3px;
+      -webkit-user-select: none; user-select: none;   /* a tap opens the gloss, not Chrome's "touch to search" */
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
-    .innesto:hover { background: color-mix(in srgb, ${s.swapColor} 12%, transparent); }
+    .innesto:hover { background: color-mix(in srgb, ${swap} 15%, transparent) !important; }
   `
 }
 
