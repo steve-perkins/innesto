@@ -48,4 +48,7 @@ def app_env(tmp_path, monkeypatch):
             token = mint_token(user)
         client.headers["Authorization"] = f"Bearer {token}"
         yield client
+    from innesto.jobs import worker
+    worker.q.join()          # let in-flight jobs finish before the database goes away
+    worker.reset()
     db.reset_for_tests()

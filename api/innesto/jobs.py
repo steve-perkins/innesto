@@ -76,8 +76,18 @@ class Worker:
                 session.add(job)
                 self.q.put(job.id)  # type: ignore[arg-type]
             session.commit()
-        self.thread = threading.Thread(target=self._loop, name="innesto-worker", daemon=True)
-        self.thread.start()
+        if self.thread is None or not self.thread.is_alive():
+            self.thread = threading.Thread(target=self._loop, name="innesto-worker", daemon=True)
+            self.thread.start()
+
+    def reset(self) -> None:
+        """Drop queued job ids (tests swap databases between runs)."""
+        while True:
+            try:
+                self.q.get_nowait()
+                self.q.task_done()
+            except queue.Empty:
+                return
 
     def enqueue(self, job_id: int) -> None:
         self.q.put(job_id)
