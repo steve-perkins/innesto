@@ -1,7 +1,44 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { speak, ttsAvailable, voicesFor } from '../reader/tts'
 import { defaultSettings, useSettings, type Flow, type Theme } from '../store/settings'
 
 const LEVELS = ['', 'A1 · common words', 'A2 · simple phrases', 'B1 · verb phrases', 'B2 · clauses', 'C1 · whole sentences']
+
+function VoicePicker({ lang, value, onChange }: { lang: string; value: string | null; onChange: (v: string | null) => void }) {
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
+  useEffect(() => {
+    if (!ttsAvailable()) return
+    const update = () => setVoices(voicesFor(lang))
+    update()
+    speechSynthesis.addEventListener('voiceschanged', update)
+    const t = window.setTimeout(update, 500)
+    return () => { speechSynthesis.removeEventListener('voiceschanged', update); window.clearTimeout(t) }
+  }, [lang])
+  if (!ttsAvailable()) return <div className="hint">This browser has no speech synthesis.</div>
+  return (
+    <>
+      <div className="field">
+        <label htmlFor="voice">Voice</label>
+        <select id="voice" value={value ?? ''} onChange={(e) => onChange(e.target.value || null)}>
+          <option value="">Automatic{voices[0] ? ` (${voices[0].name})` : ''}</option>
+          {voices.map((v) => (
+            <option key={v.voiceURI} value={v.voiceURI}>{v.name} · {v.lang}{v.localService ? '' : ' · online'}</option>
+          ))}
+        </select>
+        <div className="hint">
+          {voices.length === 0
+            ? `No ${lang.toUpperCase()} voice is installed. On macOS/iOS add one under System Settings → Accessibility → Spoken Content; on Android under Text-to-speech output.`
+            : 'Local voices work offline and are more reliable than online ones.'}
+        </div>
+      </div>
+      <div className="field">
+        <label>Test</label>
+        <button onClick={() => speak('Buongiorno! John sta leggendo un libro.', lang, value)}>🔊 Play sample</button>
+      </div>
+    </>
+  )
+}
 
 export default function Settings() {
   const s = useSettings()
@@ -62,6 +99,7 @@ export default function Settings() {
             <input id="swapColor" type="color" value={s.swapColor}
                    onChange={(e) => s.set({ swapColor: e.target.value })} />
           </div>
+          <VoicePicker lang={s.targetLang} value={s.voiceURI} onChange={(v) => s.set({ voiceURI: v })} />
           <div className="field">
             <label htmlFor="targetLang">Target language</label>
             <select id="targetLang" value={s.targetLang} onChange={(e) => s.set({ targetLang: e.target.value })}>
