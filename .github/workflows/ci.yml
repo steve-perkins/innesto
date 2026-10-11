@@ -1,0 +1,85 @@
+# Innesto CI: tests on every push; image build + push to the private registry on main.
+#
+# Repository secrets (Settings → Environments → production, so the push job
+# waits for approval):  DOCKER_REGISTRY, DOCKER_USERNAME, DOCKER_PASSWORD.
+# No frontend build-time secrets: the Google client id, JWT secret and
+# allowlist are runtime environment on the server (docker/innesto/innesto.env).
+
+name: CI
+
+on:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-api:
+    name: API tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: api/pyproject.toml
+      - name: Install
+        run: |
+          pip install -e ".[dev]"
+          python -m spacy download en_core_web_sm
+          python -m spacy download it_core_news_sm
+      - name: Test
+        env:
+          INNESTO_TRANSLATION_ENGINE: echo
+        run: pytest -q
+
+  test-web:
+    name: Web typecheck, tests, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npx tsc -p tsconfig.app.json --noEmit
+      - run: npx vitest run
+      - run: npm run build
+
+  publish:
+    name: Build and push image
+    needs: [test-api, test-web]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Log in to the private registry
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login "${{ secrets.DOCKER_REGISTRY }}" -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      - name: Build and push (linux/amd64, :latest and :<sha>)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_REGISTRY }}/innesto:latest
+            ${{ secrets.DOCKER_REGISTRY }}/innesto:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Deployment hint
+        run: |
+          echo "Pushed ${{ secrets.DOCKER_REGISTRY }}/innesto:latest and :${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          echo 'On the VM: cd ~/docker && docker compose pull innesto && docker compose up -d innesto' >> "$GITHUB_STEP_SUMMARY"

@@ -125,7 +125,14 @@ First time:
    `docker compose logs -f innesto` while it fetches the models and runs migrations.
 5. Rebuild and push the backup image once (`innestodata` was added to its volume list).
 
-Updates: `make release`, then step 4. Roll back by pinning `image: …/innesto:<previous sha>`.
+Updates: push to `main`. GitHub Actions (`.github/workflows/ci.yml`) runs the API and web test suites on
+every push; on `main` it also builds the image for linux/amd64 and pushes `:latest` and `:<git sha>` to the
+registry, gated by the `production` environment. Then step 4 on the VM. `make release` does the same
+build from your Mac when you want to bypass CI. Roll back by pinning `image: …/innesto:<previous sha>`.
+
+CI secrets (Settings → Environments → `production`): `DOCKER_REGISTRY` (`registry.steveperkins.com`),
+`DOCKER_USERNAME`, `DOCKER_PASSWORD`. Nothing else: unlike a build-time `VITE_*` client id, Innesto's
+Google client id, JWT secret and allowlist are runtime settings in `docker/innesto/innesto.env`.
 
 ### Database upgrades, backups and restore
 
