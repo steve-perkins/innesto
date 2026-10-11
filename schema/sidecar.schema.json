@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://innesto.app/schema/sidecar.v1.json",
+  "title": "Innesto sidecar",
+  "description": "Precomputed diglot-weave candidates for one book in one target language. Produced by the Innesto pipeline or by any external tool (for example a Claude Code skill); the app validates and imports any file that satisfies this schema.",
+  "type": "object",
+  "required": ["schemaVersion", "bookId", "sourceLang", "targetLang", "generator", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "bookId": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "sha256 of the EPUB file bytes, so a sidecar is portable between installs."
+    },
+    "sourceLang": { "type": "string", "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]+)*$" },
+    "targetLang": { "type": "string", "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]+)*$" },
+    "generator": {
+      "type": "object",
+      "required": ["name", "version", "createdAt"],
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "engine": { "type": "string", "description": "Translation engine identifier, free-form." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": true
+    },
+    "sections": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/section" }
+    }
+  },
+  "$defs": {
+    "section": {
+      "type": "object",
+      "required": ["index", "href", "textHash", "wordCount", "candidates"],
+      "additionalProperties": false,
+      "properties": {
+        "index": { "type": "integer", "minimum": 0, "description": "Position in the EPUB spine." },
+        "href": { "type": "string", "description": "Section path inside the EPUB container." },
+        "textHash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "description": "sha256 of the section text stream (all text nodes under body, document order)."
+        },
+        "wordCount": { "type": "integer", "minimum": 0 },
+        "candidates": { "type": "array", "items": { "$ref": "#/$defs/candidate" } }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "required": ["id", "start", "end", "text", "translation", "kind", "level", "difficulty", "lemmas"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "start": { "type": "integer", "minimum": 0, "description": "Offset into the section text stream, inclusive." },
+        "end": { "type": "integer", "minimum": 0, "description": "Offset into the section text stream, exclusive." },
+        "text": { "type": "string", "description": "Must equal the text stream substring at [start, end)." },
+        "translation": { "type": ["string", "null"], "description": "null means not yet translated (candidates-only sidecar)." },
+        "kind": { "enum": ["word", "np", "vp", "pp", "clause", "sentence"] },
+        "level": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "difficulty": { "type": "number", "minimum": 0, "maximum": 1 },
+        "lemmas": { "type": "array", "items": { "type": "string" }, "description": "Source-language content lemmas in the span." },
+        "targetLemmas": { "type": "array", "items": { "type": "string" } },
+        "sentence": {
+          "type": "object",
+          "required": ["start", "end"],
+          "additionalProperties": false,
+          "properties": { "start": { "type": "integer", "minimum": 0 }, "end": { "type": "integer", "minimum": 0 } }
+        },
+        "notes": { "type": "string", "description": "Free-form, e.g. a reviewer's remark." }
+      }
+    }
+  }
+}

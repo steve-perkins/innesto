@@ -1,0 +1,30 @@
+[project]
+name = "innesto"
+version = "0.1.0"
+description = "Innesto API and processing pipeline: a diglot-weave ebook reader for language learners."
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi",
+  "uvicorn[standard]",
+  "sqlmodel",
+  "lxml",
+  "jsonschema",
+  "python-multipart",
+  "spacy",
+  "wordfreq",
+  "ctranslate2",
+  "sentencepiece",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "httpx"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["innesto*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

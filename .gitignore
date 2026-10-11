@@ -1,0 +1,17 @@
+# Python
+api/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+api/models/
+# Node
+web/node_modules/
+web/dist/
+web/dev-dist/
+# Runtime data (uploaded books, SQLite db, sidecars)
+data/
+*.db
+# OS / IDE
+.DS_Store
+.idea/
+api/tests/fixtures/sample.epub
