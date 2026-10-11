@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { api, type Language } from '../api/client'
-import { speak, ttsAvailable, voicesFor } from '../reader/tts'
+import { speak, ttsAvailable, voicesFor, voicesReady } from '../reader/tts'
 import { defaultSettings, useSettings, type Flow, type Theme } from '../store/settings'
 
 const LEVELS = ['', 'A1 · common words', 'A2 · simple phrases', 'B1 · verb phrases', 'B2 · clauses', 'C1 · whole sentences']
@@ -11,10 +11,15 @@ function VoicePicker({ lang, value, onChange }: { lang: string; value: string | 
   useEffect(() => {
     if (!ttsAvailable()) return
     const update = () => setVoices(voicesFor(lang))
-    update()
+    void voicesReady().then(update)
     speechSynthesis.addEventListener('voiceschanged', update)
-    const t = window.setTimeout(update, 500)
-    return () => { speechSynthesis.removeEventListener('voiceschanged', update); window.clearTimeout(t) }
+    window.addEventListener('online', update)
+    window.addEventListener('offline', update)
+    return () => {
+      speechSynthesis.removeEventListener('voiceschanged', update)
+      window.removeEventListener('online', update)
+      window.removeEventListener('offline', update)
+    }
   }, [lang])
   if (!ttsAvailable()) return <div className="hint">This browser has no speech synthesis.</div>
   return (
@@ -30,7 +35,7 @@ function VoicePicker({ lang, value, onChange }: { lang: string; value: string | 
         <div className="hint">
           {voices.length === 0
             ? `No ${lang.toUpperCase()} voice is installed. On macOS/iOS add one under System Settings → Accessibility → Spoken Content; on Android under Text-to-speech output.`
-            : 'Local voices work offline and are more reliable than online ones.'}
+            : 'Automatic prefers high-quality online voices (Google in Chrome, Microsoft Natural in Edge) and falls back to local voices when offline.'}
         </div>
       </div>
       <div className="field">
@@ -53,12 +58,15 @@ export default function Settings() {
   const [languages, setLanguages] = useState<Language[]>(FALLBACK_LANGUAGES)
   useEffect(() => { api.languages().then(setLanguages).catch(() => undefined) }, [])
   const currentLang = languages.find((l) => l.code === s.targetLang)
+  const navigate = useNavigate()
+  const from = (useLocation().state as { from?: string } | null)?.from
+  const back = () => navigate(from ?? '/')
   return (
     <>
       <header className="topbar">
         <Link to="/" className="brand">Innesto</Link>
         <h1 className="muted" style={{ fontWeight: 400 }}>Settings</h1>
-        <Link to="/"><button>Library</button></Link>
+        <button onClick={back}>‹ Back{from?.startsWith('/read/') ? ' to book' : ' to library'}</button>
       </header>
       <main className="page settings">
         <section>

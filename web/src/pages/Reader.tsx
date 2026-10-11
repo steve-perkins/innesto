@@ -215,7 +215,7 @@ export default function Reader() {
         <h1 title={title}>{title}</h1>
         <LevelControls />
         <button className="icon" onClick={() => setTocOpen(true)} aria-label="Table of contents" title="Contents">☰</button>
-        <Link to="/settings"><button className="icon" aria-label="Settings" title="Settings">⚙︎</button></Link>
+        <Link to="/settings" state={{ from: `/read/${id}` }}><button className="icon" aria-label="Settings" title="Settings">⚙︎</button></Link>
       </header>
 
       <div ref={host} style={{ flex: 1, minHeight: 0, display: 'flex' }} />
