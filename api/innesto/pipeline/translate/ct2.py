@@ -18,7 +18,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from .base import SpanRequest
+from .base import SpanRequest, postprocess
 
 BATCH = 32
 
@@ -64,7 +64,7 @@ class CT2Provider:
             results = self.translator.translate_batch(
                 tokens, beam_size=4, max_decoding_length=256, repetition_penalty=1.1,
                 max_batch_size=BATCH)
-            for res in results:
+            for req, res in zip(chunk, results):
                 hyp = res.hypotheses[0] if res.hypotheses else []
-                out.append(self.sp_tgt.decode(hyp).strip())
+                out.append(postprocess(req.text, self.sp_tgt.decode(hyp)))
         return out

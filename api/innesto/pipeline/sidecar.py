@@ -15,7 +15,7 @@ from .. import __version__, config
 from ..epub.container import Epub
 from ..epub.textstream import extract
 from .candidates import Candidate, Extractor
-from .translate.base import Provider, SpanRequest
+from .translate.base import Provider, SpanRequest, postprocess
 
 GENERATOR_NAME = "innesto-pipeline"
 
@@ -119,7 +119,7 @@ def build_sidecar(epub_path: Path, provider: Provider, *, source_lang: str = "en
 
         out_cands = []
         for n, c in enumerate(cands):
-            translation = cache.get(c.text)
+            translation = postprocess(c.text, cache.get(c.text))
             entry = {
                 "id": f"s{index}-c{n:04d}", "start": c.start, "end": c.end, "text": c.text,
                 "translation": translation, "kind": c.kind, "level": c.level,
