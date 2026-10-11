@@ -45,6 +45,7 @@ export default defineConfig({
     }),
   ],
   server: {
+    strictPort: true,          // fail loudly instead of moving to 5174 (the API proxy and README assume 5173)
     headers: { 'Content-Security-Policy': devCsp },
     proxy: { '/api': 'http://localhost:8000' },
   },

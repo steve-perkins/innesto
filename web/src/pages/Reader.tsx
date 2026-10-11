@@ -130,10 +130,14 @@ export default function Reader() {
           return
         }
         if (target?.closest('a, input, button, textarea, select, video, audio')) return
-        const width = doc.defaultView?.innerWidth ?? 1
-        const r = ev.clientX / width
-        if (r < 0.22) paging('left')
-        else if (r > 0.78) paging('right')
+        // Measure against the visible page in top-window coordinates: the
+        // section iframe is as wide as all of its pages and scrolled by the
+        // paginator, so its own clientX/innerWidth are meaningless here.
+        const frame = doc.defaultView?.frameElement
+        const left = frame ? frame.getBoundingClientRect().left : 0
+        const r = (left + ev.clientX) / window.innerWidth
+        if (r < 0.2) paging('left')
+        else if (r > 0.8) paging('right')
         else paging('toggle')
       })
       void weaveDoc(doc, index)
@@ -219,6 +223,15 @@ export default function Reader() {
       </header>
 
       <div ref={host} style={{ flex: 1, minHeight: 0, display: 'flex' }} />
+
+      {status.kind === 'ready' && (
+        <>
+          <button className="page-arrow left" aria-label="Previous page" title="Previous page (←)"
+                  onClick={() => paging('left')}>‹</button>
+          <button className="page-arrow right" aria-label="Next page" title="Next page (→)"
+                  onClick={() => paging('right')}>›</button>
+        </>
+      )}
 
       {status.kind !== 'ready' && (
         <div className="status">

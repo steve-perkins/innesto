@@ -163,3 +163,18 @@ table.vocab th, table.vocab td { text-align: left; padding: 8px 10px; border-bot
 table.vocab th { font-size: 0.8rem; color: var(--muted); font-weight: 600; }
 table.vocab .row-actions { display: flex; gap: 6px; justify-content: flex-end; }
 table.vocab .row-actions button { padding: 4px 8px; font-size: 0.8rem; }
+
+/* Page-turn arrows (pointer devices; touch users swipe or tap the edges) */
+.page-arrow {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
+  width: 44px; height: 88px; padding: 0; border-radius: 12px;
+  background: color-mix(in srgb, var(--panel) 70%, transparent); border: 1px solid var(--border);
+  color: var(--muted); font-size: 2rem; line-height: 1; opacity: 0; transition: opacity 0.15s ease;
+}
+.page-arrow.left { left: 8px; }
+.page-arrow.right { right: 8px; }
+.reader:hover .page-arrow, .page-arrow:focus-visible { opacity: 0.85; }
+.page-arrow:hover { opacity: 1; color: var(--fg); }
+.reader.immersive .page-arrow { opacity: 0; }
+.reader.immersive:hover .page-arrow { opacity: 0.5; }
+@media (hover: none) { .page-arrow { display: none; } }
