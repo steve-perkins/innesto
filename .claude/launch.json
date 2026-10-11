@@ -4,13 +4,31 @@
     {
       "name": "api",
       "runtimeExecutable": "api/.venv/bin/uvicorn",
-      "runtimeArgs": ["innesto.main:app", "--reload", "--port", "8000", "--app-dir", "api"],
+      "runtimeArgs": [
+        "innesto.main:app",
+        "--reload",
+        "--port",
+        "8000",
+        "--app-dir",
+        "api",
+        "--reload-dir",
+        "api/innesto"
+      ],
       "port": 8000
     },
     {
       "name": "web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "web", "--", "--host", "--port", "5173"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "web",
+        "--",
+        "--host",
+        "--port",
+        "5173"
+      ],
       "port": 5173
     }
   ]

@@ -124,3 +124,42 @@ button:disabled { opacity: 0.5; cursor: default; }
 }
 .toc button:hover { background: var(--bg); }
 .toc button.current { color: var(--accent); font-weight: 600; }
+
+/* Translation popover */
+.popover {
+  position: fixed; z-index: 5; max-width: min(360px, calc(100vw - 16px));
+  background: var(--panel); color: var(--fg); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,0.18); padding: 12px 14px;
+  display: grid; gap: 6px; font-size: 0.95rem;
+}
+.popover-row { display: flex; align-items: center; gap: 10px; }
+.popover-target { font-size: 1.15rem; font-weight: 600; color: var(--accent); flex: 1; }
+.popover-source { font-style: italic; }
+.popover-lemmas { font-size: 0.8rem; }
+.popover-kind { opacity: 0.8; }
+
+/* Library processing status */
+.badge { display: inline-block; font-size: 0.75rem; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
+.badge.ok { color: var(--accent); border-color: var(--accent); }
+.badge.busy { color: #8a6d1d; border-color: #c9a84c; }
+.badge.err { color: var(--danger); border-color: var(--danger); }
+.reader .weave-info { position: absolute; right: 12px; bottom: 52px; font-size: 0.75rem; color: var(--muted); pointer-events: none; }
+.card .actions { position: relative; flex-wrap: wrap; gap: 6px; }
+.card .menu { position: absolute; right: 0; top: 100%; z-index: 2; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 6px; display: grid; gap: 4px; min-width: 150px; box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+.card .menu[hidden] { display: none; }
+.card .menu button { text-align: left; border: 0; background: none; }
+.card .menu button:hover { background: var(--bg); }
+.level-controls { display: flex; align-items: center; gap: 2px; font-size: 0.8rem; }
+.level-controls span { min-width: 2.2em; text-align: center; color: var(--muted); }
+.level-controls button.icon { min-width: 28px; padding: 4px 6px; }
+@media (max-width: 520px) { .level-controls span { min-width: 1.8em; } .reader .topbar h1 { font-size: 1rem; } }
+
+/* Vocabulary */
+.popover-actions { display: flex; gap: 8px; margin-top: 4px; }
+.popover-actions button { padding: 6px 10px; font-size: 0.85rem; }
+.filters { display: flex; gap: 8px; margin: 12px 0; }
+table.vocab { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+table.vocab th, table.vocab td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+table.vocab th { font-size: 0.8rem; color: var(--muted); font-weight: 600; }
+table.vocab .row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+table.vocab .row-actions button { padding: 4px 8px; font-size: 0.8rem; }
