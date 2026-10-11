@@ -1,0 +1,18 @@
+Metadata-Version: 2.4
+Name: innesto
+Version: 0.1.0
+Summary: Innesto API and processing pipeline: a diglot-weave ebook reader for language learners.
+Requires-Python: >=3.12
+Requires-Dist: fastapi
+Requires-Dist: uvicorn[standard]
+Requires-Dist: sqlmodel
+Requires-Dist: lxml
+Requires-Dist: jsonschema
+Requires-Dist: python-multipart
+Requires-Dist: spacy
+Requires-Dist: wordfreq
+Requires-Dist: ctranslate2
+Requires-Dist: sentencepiece
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: httpx; extra == "dev"

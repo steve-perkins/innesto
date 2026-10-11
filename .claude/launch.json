@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api",
+      "runtimeExecutable": "api/.venv/bin/uvicorn",
+      "runtimeArgs": ["innesto.main:app", "--reload", "--port", "8000", "--app-dir", "api"],
+      "port": 8000
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "web", "--", "--host", "--port", "5173"],
+      "port": 5173
+    }
+  ]
+}
