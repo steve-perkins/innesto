@@ -37,9 +37,16 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // App shell only. Book files and sidecars are cached explicitly in IndexedDB.
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // App shell only. Book files and sidecars are cached explicitly in IndexedDB;
+        // fonts are cached on first use (per unicode-range subset) rather than precached.
+        globPatterns: ['**/*.{js,css,html,svg,png}'],
+        globIgnores: ['**/fonts/**'],
         navigateFallbackDenylist: [/^\/api\//],
+        runtimeCaching: [{
+          urlPattern: /\/fonts\/.*\.(?:woff2|css)$/,
+          handler: 'CacheFirst',
+          options: { cacheName: 'innesto-fonts', expiration: { maxEntries: 40, maxAgeSeconds: 60 * 60 * 24 * 365 } },
+        }],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       },
     }),

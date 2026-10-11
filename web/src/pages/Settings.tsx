@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { api, type Language } from '../api/client'
 import { speak, ttsAvailable, voicesFor, voicesReady } from '../reader/tts'
-import { defaultSettings, useSettings, type Flow, type Theme } from '../store/settings'
+import { defaultSettings, FONT_LABELS, fontStack, useSettings, type Flow, type FontFamily, type Theme } from '../store/settings'
 
 const LEVELS = ['', 'A1 · common words', 'A2 · simple phrases', 'B1 · verb phrases', 'B2 · clauses', 'C1 · whole sentences']
 
@@ -81,6 +81,17 @@ export default function Settings() {
             </select>
           </div>
           <div className="field">
+            <label htmlFor="fontFamily">Font</label>
+            <select id="fontFamily" value={s.fontFamily} onChange={(e) => s.set({ fontFamily: e.target.value as FontFamily })}>
+              {(Object.keys(FONT_LABELS) as FontFamily[]).map((f) => <option key={f} value={f}>{FONT_LABELS[f]}</option>)}
+            </select>
+            <div className="hint font-preview" style={{ fontFamily: fontStack(s.fontFamily) ?? 'serif' }}>
+              {s.fontFamily === 'book'
+                ? 'Uses the fonts the book specifies (or the browser default).'
+                : 'John is reading un libro. Maria aprì la porta e entrò in cucina.'}
+            </div>
+          </div>
+          <div className="field">
             <label htmlFor="fontSize">Text size: {s.fontSize}%</label>
             <input id="fontSize" type="range" min={70} max={200} step={5} value={s.fontSize}
                    onChange={(e) => s.set({ fontSize: Number(e.target.value) })} />
@@ -151,7 +162,8 @@ export default function Settings() {
           </p>
           <p className="muted" style={{ fontSize: '0.85rem' }}>
             Built on foliate-js (MIT), spaCy (MIT), wordfreq (Apache-2.0, data CC BY-SA 4.0), CTranslate2
-            (MIT) and the Helsinki-NLP Opus-MT models (CC BY 4.0).
+            (MIT) and Opus-MT / Argos translation models (CC BY 4.0). Bundled fonts Noto Serif and Noto Sans
+            are under the SIL Open Font License 1.1.
           </p>
           <button onClick={() => s.set(defaultSettings)}>Reset settings</button>
         </section>
