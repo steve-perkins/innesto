@@ -73,8 +73,8 @@ button:disabled { opacity: 0.5; cursor: default; }
 
 /* Library grid */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 18px; }
-.card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
-.card .cover { aspect-ratio: 2 / 3; background: var(--border); display: grid; place-items: center; cursor: pointer; overflow: hidden; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; display: flex; flex-direction: column; position: relative; }
+.card .cover { aspect-ratio: 2 / 3; background: var(--border); display: grid; place-items: center; cursor: pointer; overflow: hidden; border-radius: 9px 9px 0 0; }
 .card .cover img { width: 100%; height: 100%; object-fit: cover; }
 .card .cover .placeholder { padding: 12px; text-align: center; font-size: 0.9rem; }
 .card .meta { padding: 8px 10px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 4px; }
@@ -144,9 +144,9 @@ button:disabled { opacity: 0.5; cursor: default; }
 .badge.busy { color: #8a6d1d; border-color: #c9a84c; }
 .badge.err { color: var(--danger); border-color: var(--danger); }
 .reader .weave-info { position: absolute; right: 12px; bottom: 52px; font-size: 0.75rem; color: var(--muted); pointer-events: none; }
-.card .actions { position: relative; flex-wrap: wrap; gap: 6px; }
-.card .menu { position: absolute; right: 0; top: 100%; z-index: 2; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 6px; display: grid; gap: 4px; min-width: 150px; box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
-.card .menu[hidden] { display: none; }
+.card .actions { flex-wrap: wrap; gap: 6px; }
+.card.menu-open { z-index: 3; }
+.card .menu { position: absolute; right: 8px; bottom: 8px; z-index: 4; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 6px; display: grid; gap: 4px; min-width: 150px; box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
 .card .menu button { text-align: left; border: 0; background: none; }
 .card .menu button:hover { background: var(--bg); }
 .level-controls { display: flex; align-items: center; gap: 2px; font-size: 0.8rem; }

@@ -19,6 +19,7 @@ export default function Library() {
   const [books, setBooks] = useState<Book[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [menuFor, setMenuFor] = useState<string | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
   const sidecarInput = useRef<HTMLInputElement>(null)
   const sidecarTarget = useRef<string | null>(null)
@@ -30,6 +31,19 @@ export default function Library() {
     catch (e) { setError(`Could not load library: ${(e as Error).message}`) }
   }, [])
   useEffect(() => { void refresh() }, [refresh])
+
+  // Close the card menu on outside click or Escape.
+  useEffect(() => {
+    if (!menuFor) return
+    const close = (e: Event) => {
+      if (e instanceof KeyboardEvent && e.key !== 'Escape') return
+      if (e instanceof MouseEvent && (e.target as Element | null)?.closest('.menu, .menu-button')) return
+      setMenuFor(null)
+    }
+    window.addEventListener('click', close)
+    window.addEventListener('keydown', close)
+    return () => { window.removeEventListener('click', close); window.removeEventListener('keydown', close) }
+  }, [menuFor])
 
   // Poll while any book is being processed.
   const processing = books?.some((b) => b.job && (b.job.status === 'queued' || b.job.status === 'running')) ?? false
@@ -99,7 +113,7 @@ export default function Library() {
             {books.map((b) => {
               const pending = b.job && (b.job.status === 'queued' || b.job.status === 'running')
               return (
-                <article className="card" key={b.id}>
+                <article className={`card${menuFor === b.id ? ' menu-open' : ''}`} key={b.id}>
                   <div className="cover" onClick={() => navigate(`/read/${b.id}`)} role="button" tabIndex={0}
                        onKeyDown={(e) => e.key === 'Enter' && navigate(`/read/${b.id}`)}>
                     {b.has_cover
@@ -115,19 +129,19 @@ export default function Library() {
                       {!pending && !b.sidecar_langs.includes(targetLang) && (
                         <button onClick={() => void process(b)} title="Generate translations for this book">Process</button>
                       )}
-                      <button className="icon" title="More" aria-label="More actions"
-                              onClick={(e) => {
-                                const menu = (e.currentTarget.nextSibling as HTMLElement)
-                                menu.hidden = !menu.hidden
-                              }}>⋯</button>
-                      <div hidden className="menu">
-                        <button onClick={() => { sidecarTarget.current = b.id; sidecarInput.current?.click() }}>Import sidecar…</button>
-                        {!pending && b.sidecar_langs.includes(targetLang) && (
-                          <button onClick={() => void process(b)}>Re-process</button>
-                        )}
-                        <button className="danger" onClick={() => void remove(b)}>Remove</button>
-                      </div>
+                      <button className="icon menu-button" title="More" aria-label="More actions"
+                              aria-expanded={menuFor === b.id}
+                              onClick={() => setMenuFor(menuFor === b.id ? null : b.id)}>⋯</button>
                     </div>
+                    {menuFor === b.id && (
+                      <div className="menu" role="menu">
+                        <button role="menuitem" onClick={() => { setMenuFor(null); sidecarTarget.current = b.id; sidecarInput.current?.click() }}>Import sidecar…</button>
+                        {!pending && b.sidecar_langs.includes(targetLang) && (
+                          <button role="menuitem" onClick={() => { setMenuFor(null); void process(b) }}>Re-process</button>
+                        )}
+                        <button role="menuitem" className="danger" onClick={() => { setMenuFor(null); void remove(b) }}>Remove</button>
+                      </div>
+                    )}
                   </div>
                 </article>
               )
