@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { api, type Language } from '../api/client'
 import { speak, ttsAvailable, voicesFor, voicesReady } from '../reader/tts'
+import { useAuth } from '../store/auth'
 import { defaultSettings, FONT_LABELS, fontStack, useSettings, type Flow, type FontFamily, type Theme } from '../store/settings'
 
 const LEVELS = ['', 'A1 · common words', 'A2 · simple phrases', 'B1 · verb phrases', 'B2 · clauses', 'C1 · whole sentences']
@@ -61,6 +62,7 @@ export default function Settings() {
   const navigate = useNavigate()
   const from = (useLocation().state as { from?: string } | null)?.from
   const back = () => navigate(from ?? '/')
+  const auth = useAuth()
   return (
     <>
       <header className="topbar">
@@ -145,6 +147,18 @@ export default function Settings() {
             <div className="hint">Each language has its own translations and vocabulary; switching does not lose anything.</div>
           </div>
           <VoicePicker lang={s.targetLang} value={s.voiceURI} onChange={(v) => s.set({ voiceURI: v })} />
+        </section>
+
+        <section>
+          <h2>Account</h2>
+          <div className="account">
+            {auth.user?.pictureUrl && <img className="avatar" src={auth.user.pictureUrl} alt="" referrerPolicy="no-referrer" />}
+            <div>
+              <div>{auth.user?.displayName ?? 'Signed in'}</div>
+              <div className="muted">{auth.user?.email}</div>
+            </div>
+            <button onClick={() => { auth.signOut(); navigate('/login') }}>Sign out</button>
+          </div>
         </section>
 
         <section>

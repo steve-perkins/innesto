@@ -3,9 +3,22 @@
 from __future__ import annotations
 
 import os
+import secrets
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+# Local development reads api/.env (git-ignored) so the Google client id,
+# allowlist and secret need not be exported by hand. Production passes real
+# environment variables (docker env_file); those always win.
+try:
+    from dotenv import load_dotenv
+    load_dotenv(REPO_ROOT / "api" / ".env", override=False)
+except ImportError:  # pragma: no cover
+    pass
+
+ENV = os.environ.get("INNESTO_ENV", "development").lower()
+IS_PRODUCTION = ENV == "production"
 
 # Where uploaded books, covers, sidecars and the SQLite database live.
 DATA_DIR = Path(os.environ.get("INNESTO_DATA_DIR", REPO_ROOT / "data")).resolve()
@@ -31,8 +44,35 @@ SCHEMA_PATH = REPO_ROOT / "schema" / "sidecar.schema.json"
 SUPPORTED_TARGETS = {"it": "Italian", "es": "Spanish"}
 DEFAULT_TARGET = "it"
 
-# Phase 1 runs single-user; this is the implicit local account.
-LOCAL_USER_ID = "local"
+# --- Identity --------------------------------------------------------------
+# Google Identity Services client id (public). The frontend fetches it from
+# /api/auth/config so one image serves every environment.
+GOOGLE_CLIENT_ID = os.environ.get("INNESTO_GOOGLE_CLIENT_ID", "")
+# Comma-separated emails allowed to sign in. Empty means nobody can.
+ALLOWED_EMAILS = frozenset(
+    e.strip().lower() for e in os.environ.get("INNESTO_ALLOWED_EMAILS", "").split(",") if e.strip())
+# Tests and one-off CLI runs set this to skip the nightly snapshot thread.
+DISABLE_MAINTENANCE = os.environ.get("INNESTO_DISABLE_MAINTENANCE", "") == "1"
+TOKEN_TTL_DAYS = int(os.environ.get("INNESTO_TOKEN_TTL_DAYS", "7"))
+# Legacy single-user account from phase 1; its data is adopted by the first
+# real user to sign in (see auth.adopt_legacy_local_user).
+LEGACY_LOCAL_USER_ID = "local"
+
+
+def jwt_secret() -> str:
+    """Signing key for access tokens. Required in production; in development
+    one is generated once and kept in DATA_DIR so sessions survive restarts."""
+    value = os.environ.get("INNESTO_JWT_SECRET", "")
+    if value:
+        return value
+    if IS_PRODUCTION:
+        raise RuntimeError("INNESTO_JWT_SECRET must be set in production")
+    path = DATA_DIR / "jwt-secret"
+    if not path.exists():
+        ensure_dirs()
+        path.write_text(secrets.token_hex(32))
+        path.chmod(0o600)
+    return path.read_text().strip()
 
 
 def ensure_dirs() -> None:

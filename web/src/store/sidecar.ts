@@ -1,6 +1,7 @@
 // Sidecar loading with an IndexedDB copy for offline reading.
 import Dexie, { type EntityTable } from 'dexie'
 import type { Candidate } from '../reader/selection'
+import { authFetch } from './auth'
 
 export interface SidecarSection {
   index: number
@@ -32,7 +33,7 @@ export type SidecarStatus =
 export async function loadSidecar(bookId: string, lang: string): Promise<SidecarStatus> {
   const key = `${bookId}:${lang}`
   try {
-    const res = await fetch(`/api/books/${bookId}/sidecars/active?lang=${encodeURIComponent(lang)}`)
+    const res = await authFetch(`/api/books/${bookId}/sidecars/active?lang=${encodeURIComponent(lang)}`)
     if (res.status === 404) {
       await db.sidecars.delete(key).catch(() => undefined)
       return { kind: 'missing' }

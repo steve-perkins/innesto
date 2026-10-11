@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -19,7 +19,9 @@ from fastapi.staticfiles import StaticFiles
 from . import __version__, config
 from .db import init_db
 from .jobs import worker
-from .routes import books, jobs, progress, sidecars, vocab
+from .maintenance import start_scheduler
+from .auth import require_user
+from .routes import auth, books, jobs, progress, sidecars, vocab
 
 
 @asynccontextmanager
@@ -27,6 +29,8 @@ async def lifespan(app: FastAPI):
     config.ensure_dirs()
     init_db()
     worker.start()
+    if not config.DISABLE_MAINTENANCE:
+        start_scheduler()
     yield
 
 
@@ -39,11 +43,40 @@ app.add_middleware(
     allow_methods=["*"], allow_headers=["*"],
 )
 
-app.include_router(books.router)
-app.include_router(progress.router)
-app.include_router(jobs.router)
-app.include_router(sidecars.router)
-app.include_router(vocab.router)
+# Public: health, sign-in. Everything else requires a bearer token.
+app.include_router(auth.router)
+protected = [Depends(require_user)]
+for r in (books.router, progress.router, jobs.router, sidecars.router, vocab.router):
+    app.include_router(r, dependencies=protected)
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    if config.IS_PRODUCTION:
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        response.headers.setdefault("Content-Security-Policy", CSP)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    return response
+
+
+# Book sections render in blob: documents that inherit this policy, so no
+# script from an EPUB can run; Google Identity Services needs its origin.
+CSP = "; ".join([
+    "default-src 'self'",
+    "script-src 'self' https://accounts.google.com",
+    "style-src 'self' 'unsafe-inline' blob: https://accounts.google.com",
+    "img-src 'self' blob: data: https://*.googleusercontent.com",
+    "font-src 'self' blob: data:",
+    "connect-src 'self' blob: data: https://accounts.google.com",
+    "frame-src 'self' blob: https://accounts.google.com",
+    "worker-src 'self' blob:",
+    "media-src 'self' blob:",
+    "base-uri 'self'",
+    "frame-ancestors 'none'",
+])
 
 
 @app.get("/api/health")
@@ -51,7 +84,7 @@ def health() -> dict:
     return {"status": "ok", "version": __version__}
 
 
-@app.get("/api/languages")
+@app.get("/api/languages", dependencies=[Depends(require_user)])
 def languages() -> list[dict]:
     """Target languages the UI can offer, with translation-model availability."""
     from .pipeline.translate.base import provider_available

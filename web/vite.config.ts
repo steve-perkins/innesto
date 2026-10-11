@@ -6,12 +6,12 @@ import { VitePWA } from 'vite-plugin-pwa'
 // production CSP (no inline, no blob: scripts) is set by the API server.
 const devCsp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline' blob:",
-  "img-src 'self' blob: data:",
+  "script-src 'self' 'unsafe-inline' https://accounts.google.com",
+  "style-src 'self' 'unsafe-inline' blob: https://accounts.google.com",
+  "img-src 'self' blob: data: https://*.googleusercontent.com",
   "font-src 'self' blob: data:",
-  "connect-src 'self' ws: blob: data:",
-  "frame-src 'self' blob:",
+  "connect-src 'self' ws: blob: data: https://accounts.google.com",
+  "frame-src 'self' blob: https://accounts.google.com",
   "worker-src 'self' blob:",
   "media-src 'self' blob:",
 ].join('; ')
