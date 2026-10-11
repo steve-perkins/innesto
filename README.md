@@ -55,6 +55,31 @@ make test
 
 The web dev server proxies `/api` to the API. Open http://localhost:5173, add an EPUB, read.
 
+### Translation model
+
+Processing needs a CTranslate2 model for the language pair under `api/models/<src>-<tgt>/`.
+The simplest source is an Argos Translate package (CT2 model + sentencepiece, no PyTorch):
+
+```bash
+cd api && .venv/bin/python -m scripts.fetch_model en it
+```
+
+Until a model is present, uploads are not processed automatically; the library shows
+"Not processed" and the **Process** button reports the missing model. `INNESTO_TRANSLATION_ENGINE=echo`
+runs the pipeline with a stub engine for development.
+
+### Working with sidecars from outside the app
+
+```bash
+# candidates only (translation: null), for an external tool to fill
+.venv/bin/python -m innesto.pipeline book.epub --target it --no-translate -o book.it.json
+# check a (hand-edited or externally generated) sidecar against the book
+.venv/bin/python -m innesto.pipeline --verify book.it.json book.epub
+```
+
+Import the result from the library card menu ("Import sidecar…") or `POST /api/books/{id}/sidecars`.
+The imported sidecar becomes the active one; earlier ones are kept and can be re-activated.
+
 ## Licenses and attributions
 
 Innesto avoids copyleft dependencies. Notable third-party components:
