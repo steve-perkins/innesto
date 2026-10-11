@@ -17,6 +17,10 @@ DB_PATH = DATA_DIR / "innesto.db"
 # Translation models (CTranslate2 directories), one per language pair.
 MODELS_DIR = Path(os.environ.get("INNESTO_MODELS_DIR", REPO_ROOT / "api" / "models")).resolve()
 
+# Translation engine used by background jobs: ct2 (self-hosted models), echo
+# (test double) or none (candidates only, for external translation tools).
+TRANSLATION_ENGINE = os.environ.get("INNESTO_TRANSLATION_ENGINE", "ct2")
+
 # Built web app, served as static files when present (production container).
 WEB_DIST = Path(os.environ.get("INNESTO_WEB_DIST", REPO_ROOT / "web" / "dist")).resolve()
 

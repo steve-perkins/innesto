@@ -4,17 +4,20 @@ import hashlib
 import mimetypes
 import shutil
 import tempfile
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from .. import config
 from ..auth import current_user_id
 from ..db import get_session
 from ..epub.container import Epub
-from ..models import Book, Job, ReadingPosition, Sidecar
+from ..models import Book, Job, ReadingPosition, Sidecar, User
+from ..pipeline.translate.base import provider_available
 
 router = APIRouter(prefix="/api/books", tags=["books"])
 
@@ -42,10 +45,45 @@ def get_book(book_id: str, session: Session) -> Book:
     return book
 
 
+class BookOut(BaseModel):
+    """Book plus a processing summary for the library view."""
+    id: str
+    user_id: str
+    title: str
+    author: str | None
+    language: str | None
+    filename: str
+    size: int
+    section_count: int
+    has_cover: bool
+    added_at: datetime
+    sidecar_langs: list[str] = []
+    job: Job | None = None
+
+
+def _summarize(session: Session, book: Book) -> BookOut:
+    langs = sorted({s.target_lang for s in session.exec(
+        select(Sidecar).where(Sidecar.book_id == book.id, Sidecar.active == True))})  # noqa: E712
+    job = session.exec(select(Job).where(Job.book_id == book.id)
+                       .order_by(Job.created_at.desc())).first()
+    return BookOut(**book.model_dump(), sidecar_langs=langs, job=job)
+
+
+def maybe_enqueue(session: Session, book: Book) -> None:
+    """Queue processing for the user's target language when the configured
+    engine can run (echo/none always can; ct2 needs the model on disk)."""
+    from .. import jobs
+    user = session.get(User, current_user_id())
+    lang = user.target_lang if user else "it"
+    source = (book.language or "en").split("-")[0].lower()
+    if config.TRANSLATION_ENGINE != "ct2" or provider_available(source, lang):
+        jobs.enqueue_job(session, book, lang)
+
+
 @router.get("")
-def list_books(session: Session = Depends(get_session)) -> list[Book]:
+def list_books(session: Session = Depends(get_session)) -> list[BookOut]:
     stmt = select(Book).where(Book.user_id == current_user_id()).order_by(Book.added_at.desc())
-    return list(session.exec(stmt))
+    return [_summarize(session, b) for b in session.exec(stmt)]
 
 
 @router.post("", status_code=201)
@@ -87,13 +125,14 @@ async def upload_book(file: UploadFile, session: Session = Depends(get_session))
                 size=dest.stat().st_size, section_count=section_count, has_cover=has_cover)
     session.add(book)
     session.commit()
+    maybe_enqueue(session, book)
     session.refresh(book)
     return book
 
 
 @router.get("/{book_id}")
-def read_book(book_id: str, session: Session = Depends(get_session)) -> Book:
-    return get_book(book_id, session)
+def read_book(book_id: str, session: Session = Depends(get_session)) -> BookOut:
+    return _summarize(session, get_book(book_id, session))
 
 
 @router.get("/{book_id}/file")

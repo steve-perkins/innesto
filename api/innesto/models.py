@@ -79,3 +79,10 @@ class VocabEntry(SQLModel, table=True):
     status: str = "learning"                    # learning | known
     lookups: int = 0
     last_seen: datetime = Field(default_factory=utcnow)
+
+
+class Translation(SQLModel, table=True):
+    """Cross-book cache of engine output, keyed by engine and source text."""
+    engine: str = Field(primary_key=True)
+    source: str = Field(primary_key=True)
+    target: str
