@@ -18,13 +18,15 @@ from fastapi.staticfiles import StaticFiles
 
 from . import __version__, config
 from .db import init_db
-from .routes import books, progress
+from .jobs import worker
+from .routes import books, jobs, progress, sidecars
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     config.ensure_dirs()
     init_db()
+    worker.start()
     yield
 
 
@@ -39,6 +41,8 @@ app.add_middleware(
 
 app.include_router(books.router)
 app.include_router(progress.router)
+app.include_router(jobs.router)
+app.include_router(sidecars.router)
 
 
 @app.get("/api/health")
