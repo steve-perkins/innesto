@@ -160,16 +160,27 @@ class Extractor:
                         and tok.dep_ != "compound":
                     add(tok.i, tok.i + 1, "word", sent)
 
-                # verb phrase: aux/neg/particle children + pronoun subject, contiguous
+                # verb phrase: verb + aux/neg/particles + its subject (pronoun or a
+                # short noun phrase), contiguous. A verb is never swapped alone,
+                # because a conjugated form needs its subject for agreement.
                 if tok.pos_ == "VERB" or (tok.pos_ == "AUX" and tok.dep_ == "ROOT"):
-                    members = [tok.i] + [c.i for c in tok.children if c.dep_ in VP_CHILD_DEPS]
-                    subj = [c for c in tok.children if c.dep_ in ("nsubj", "nsubjpass") and c.pos_ == "PRON"]
-                    if subj and len(list(subj[0].subtree)) == 1:
-                        members.append(subj[0].i)
-                    lo, hi = min(members), max(members) + 1
-                    if all(doc[i].head.i == tok.i or i == tok.i or doc[i].is_punct for i in range(lo, hi)) \
-                            and not all(doc[i].is_punct for i in range(lo, hi)):
-                        add(lo, hi, "vp", sent)
+                    core = [tok.i] + [c.i for c in tok.children if c.dep_ in VP_CHILD_DEPS]
+                    subj = [c for c in tok.children if c.dep_ in ("nsubj", "nsubjpass")]
+                    subj_tokens: list[int] = []
+                    if subj:
+                        sub = list(subj[0].subtree)
+                        if len(sub) <= 5 and not any(t.i in excluded for t in sub):
+                            subj_tokens = [t.i for t in sub]
+                    # With a usable subject ("the children played"); otherwise the
+                    # verb with its auxiliaries ("is reading"), never a lone verb.
+                    for members in ([*core, *subj_tokens], core) if subj_tokens else (core,):
+                        covered = set(members)
+                        if len(covered) < 2:
+                            continue
+                        lo, hi = min(members), max(members) + 1
+                        if all(i in covered or doc[i].is_punct for i in range(lo, hi)):
+                            add(lo, hi, "vp", sent)
+                            break
 
                 # prepositional phrase: ADP + object subtree, contiguous
                 if tok.pos_ == "ADP" and tok.dep_ == "prep":

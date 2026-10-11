@@ -19,7 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from . import __version__, config
 from .db import init_db
 from .jobs import worker
-from .routes import books, jobs, progress, sidecars
+from .routes import books, jobs, progress, sidecars, vocab
 
 
 @asynccontextmanager
@@ -43,6 +43,7 @@ app.include_router(books.router)
 app.include_router(progress.router)
 app.include_router(jobs.router)
 app.include_router(sidecars.router)
+app.include_router(vocab.router)
 
 
 @app.get("/api/health")

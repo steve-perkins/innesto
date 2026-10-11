@@ -1,0 +1,9 @@
+.git
+api/.venv
+api/models
+api/tests
+web/node_modules
+web/dist
+web/dev-dist
+data
+.claude

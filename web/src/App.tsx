@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import Library from './pages/Library'
 import Reader from './pages/Reader'
 import Settings from './pages/Settings'
+import Vocabulary from './pages/Vocabulary'
 import { effectiveTheme, useSettings } from './store/settings'
 
 export default function App() {
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/" element={<Library />} />
         <Route path="/read/:id" element={<Reader />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/vocabulary" element={<Vocabulary />} />
       </Routes>
     </BrowserRouter>
   )
