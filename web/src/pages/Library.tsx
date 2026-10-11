@@ -57,7 +57,7 @@ export default function Library() {
     if (!files?.length) return
     setBusy(true)
     try {
-      for (const file of Array.from(files)) await api.uploadBook(file)
+      for (const file of Array.from(files)) await api.uploadBook(file, targetLang)
       await refresh()
     } catch (e) { setError(`Upload failed: ${(e as Error).message}`) }
     finally { setBusy(false); if (fileInput.current) fileInput.current.value = '' }

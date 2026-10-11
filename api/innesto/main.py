@@ -51,6 +51,16 @@ def health() -> dict:
     return {"status": "ok", "version": __version__}
 
 
+@app.get("/api/languages")
+def languages() -> list[dict]:
+    """Target languages the UI can offer, with translation-model availability."""
+    from .pipeline.translate.base import provider_available
+    engine_ready = config.TRANSLATION_ENGINE != "ct2"
+    return [{"code": code, "name": name,
+             "available": engine_ready or provider_available("en", code)}
+            for code, name in config.SUPPORTED_TARGETS.items()]
+
+
 # Production: serve the built PWA. Anything that is not /api falls back to
 # index.html so client-side routes deep-link correctly.
 if config.WEB_DIST.is_dir():

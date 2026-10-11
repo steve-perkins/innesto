@@ -89,3 +89,19 @@ def test_import_external_sidecar(echo_env, sample_epub):
     r = client.post(f"/api/books/{book['id']}/sidecars",
                     files={"file": ("bad.json", "{}", "application/json")})
     assert r.status_code == 422
+
+
+def test_languages_and_upload_target(echo_env, sample_epub):
+    client = echo_env
+    langs = client.get("/api/languages").json()
+    assert {l["code"] for l in langs} >= {"it", "es"} and all(l["available"] for l in langs)
+    with open(sample_epub, "rb") as f:
+        r = client.post("/api/books", params={"target_lang": "es"},
+                        files={"file": ("sample.epub", f, "application/epub+zip")})
+    assert r.status_code == 201
+    jobs = client.get(f"/api/books/{r.json()['id']}/jobs").json()
+    assert jobs[0]["target_lang"] == "es"
+    job = wait_for_job(client, jobs[0]["id"])
+    assert job["status"] == "done"
+    sc = client.get(f"/api/books/{r.json()['id']}/sidecars/active", params={"lang": "es"}).json()
+    assert sc["targetLang"] == "es"

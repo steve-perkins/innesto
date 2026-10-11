@@ -23,7 +23,8 @@ COPY api/scripts api/scripts
 COPY schema schema
 RUN pip install --no-cache-dir ./api \
  && python -m spacy download en_core_web_sm \
- && python -m spacy download it_core_news_sm
+ && python -m spacy download it_core_news_sm \
+ && python -m spacy download es_core_news_sm
 COPY --from=web /src/web/dist web/dist
 VOLUME ["/data", "/models"]
 EXPOSE 8000

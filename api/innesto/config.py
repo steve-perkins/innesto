@@ -26,6 +26,11 @@ WEB_DIST = Path(os.environ.get("INNESTO_WEB_DIST", REPO_ROOT / "web" / "dist")).
 
 SCHEMA_PATH = REPO_ROOT / "schema" / "sidecar.schema.json"
 
+# Target languages the UI offers. A language is usable once its translation
+# model is installed (scripts/fetch_model.py); the API reports availability.
+SUPPORTED_TARGETS = {"it": "Italian", "es": "Spanish"}
+DEFAULT_TARGET = "it"
+
 # Phase 1 runs single-user; this is the implicit local account.
 LOCAL_USER_ID = "local"
 

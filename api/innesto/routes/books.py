@@ -69,15 +69,17 @@ def _summarize(session: Session, book: Book) -> BookOut:
     return BookOut(**book.model_dump(), sidecar_langs=langs, job=job)
 
 
-def maybe_enqueue(session: Session, book: Book) -> None:
-    """Queue processing for the user's target language when the configured
-    engine can run (echo/none always can; ct2 needs the model on disk)."""
+def maybe_enqueue(session: Session, book: Book, target_lang: str | None = None) -> None:
+    """Queue processing for the requested (or the user's default) target
+    language when the configured engine can run (echo/none always can; ct2
+    needs the model on disk)."""
     from .. import jobs
-    user = session.get(User, current_user_id())
-    lang = user.target_lang if user else "it"
+    if not target_lang:
+        user = session.get(User, current_user_id())
+        target_lang = user.target_lang if user else config.DEFAULT_TARGET
     source = (book.language or "en").split("-")[0].lower()
-    if config.TRANSLATION_ENGINE != "ct2" or provider_available(source, lang):
-        jobs.enqueue_job(session, book, lang)
+    if config.TRANSLATION_ENGINE != "ct2" or provider_available(source, target_lang):
+        jobs.enqueue_job(session, book, target_lang)
 
 
 @router.get("")
@@ -87,7 +89,8 @@ def list_books(session: Session = Depends(get_session)) -> list[BookOut]:
 
 
 @router.post("", status_code=201)
-async def upload_book(file: UploadFile, session: Session = Depends(get_session)) -> Book:
+async def upload_book(file: UploadFile, target_lang: str | None = None,
+                      session: Session = Depends(get_session)) -> Book:
     config.ensure_dirs()
     sha = hashlib.sha256()
     with tempfile.NamedTemporaryFile(delete=False, suffix=".epub", dir=config.DATA_DIR) as tmp:
@@ -125,7 +128,7 @@ async def upload_book(file: UploadFile, session: Session = Depends(get_session))
                 size=dest.stat().st_size, section_count=section_count, has_cover=has_cover)
     session.add(book)
     session.commit()
-    maybe_enqueue(session, book)
+    maybe_enqueue(session, book, target_lang)
     session.refresh(book)
     return book
 
