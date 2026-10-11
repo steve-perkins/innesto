@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react'
+import { useSettings } from '../store/settings'
 import { useVocab } from '../store/vocab'
+import { speak, ttsAvailable } from './tts'
 import type { Candidate } from './selection'
 
 export interface PopoverProps {
@@ -10,16 +12,6 @@ export interface PopoverProps {
   onClose: () => void
 }
 
-export function speak(text: string, lang: string): void {
-  if (!('speechSynthesis' in window)) return
-  const u = new SpeechSynthesisUtterance(text)
-  u.lang = lang === 'it' ? 'it-IT' : lang
-  const voice = speechSynthesis.getVoices().find((v) => v.lang.toLowerCase().startsWith(lang.toLowerCase()))
-  if (voice) u.voice = voice
-  speechSynthesis.cancel()
-  speechSynthesis.speak(u)
-}
-
 const KIND_LABEL: Record<Candidate['kind'], string> = {
   word: 'word', np: 'noun phrase', vp: 'verb phrase', pp: 'prepositional phrase',
   clause: 'clause', sentence: 'sentence',
@@ -28,6 +20,7 @@ const KIND_LABEL: Record<Candidate['kind'], string> = {
 export default function Popover({ candidate, anchor, targetLang, onClose }: PopoverProps) {
   const ref = useRef<HTMLDivElement>(null)
   const vocab = useVocab()
+  const voiceURI = useSettings((s) => s.voiceURI)
   const lemmas = candidate.targetLemmas ?? []
   const allKnown = lemmas.length > 0 && lemmas.every((l) => vocab.known.has(l))
   const anyLearning = lemmas.some((l) => vocab.learning.has(l))
@@ -56,8 +49,10 @@ export default function Popover({ candidate, anchor, targetLang, onClose }: Popo
     <div className="popover" ref={ref} role="dialog" aria-label="Translation">
       <div className="popover-row">
         <div className="popover-target" lang={targetLang}>{candidate.translation}</div>
-        <button className="icon" title="Pronounce" aria-label="Pronounce"
-                onClick={() => speak(candidate.translation ?? '', targetLang)}>🔊</button>
+        {ttsAvailable() && (
+          <button className="icon" title="Pronounce" aria-label="Pronounce"
+                  onClick={() => speak(candidate.translation ?? '', targetLang, voiceURI)}>🔊</button>
+        )}
       </div>
       <div className="popover-source">{candidate.text}</div>
       <div className="popover-lemmas muted">

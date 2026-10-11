@@ -14,6 +14,7 @@ export interface Settings {
   density: number           // swaps per 100 words
   swapColor: string
   targetLang: string
+  voiceURI: string | null   // preferred TTS voice for the target language
 }
 
 interface SettingsStore extends Settings {
@@ -29,6 +30,7 @@ export const defaultSettings: Settings = {
   density: 5,
   swapColor: '#2f7d4b',
   targetLang: 'it',
+  voiceURI: null,
 }
 
 export const useSettings = create<SettingsStore>()(
