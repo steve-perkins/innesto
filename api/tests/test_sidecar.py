@@ -19,7 +19,7 @@ def test_sidecar_is_valid_and_consistent(sidecar, sample_epub):
     assert [s["index"] for s in sidecar["sections"]] == [0, 1, 2]
     ch1 = sidecar["sections"][1]
     texts = {c["text"] for c in ch1["candidates"]}
-    assert {"a book", "is reading", "very", "slowly"} <= texts
+    assert {"a book", "John is reading", "very", "slowly"} <= texts
     for c in ch1["candidates"]:
         assert c["translation"] == f"[xx:{c['text']}]"
         assert c["targetLemmas"]

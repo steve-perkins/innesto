@@ -165,22 +165,31 @@ class Extractor:
                 # because a conjugated form needs its subject for agreement.
                 if tok.pos_ == "VERB" or (tok.pos_ == "AUX" and tok.dep_ == "ROOT"):
                     core = [tok.i] + [c.i for c in tok.children if c.dep_ in VP_CHILD_DEPS]
+                    if tok.pos_ == "AUX":
+                        # Copula: "dinner is" means nothing without its predicate.
+                        pred = [c for c in tok.children if c.dep_ in ("acomp", "attr")]
+                        if not pred:
+                            continue
+                        pred_sub = list(pred[0].subtree)
+                        if len(pred_sub) > 4:
+                            continue
+                        core.extend(t.i for t in pred_sub)
                     subj = [c for c in tok.children if c.dep_ in ("nsubj", "nsubjpass")]
                     subj_tokens: list[int] = []
                     if subj:
                         sub = list(subj[0].subtree)
-                        if len(sub) <= 5 and not any(t.i in excluded for t in sub):
+                        if len(sub) <= 5:
                             subj_tokens = [t.i for t in sub]
-                    # With a usable subject ("the children played"); otherwise the
-                    # verb with its auxiliaries ("is reading"), never a lone verb.
-                    for members in ([*core, *subj_tokens], core) if subj_tokens else (core,):
-                        covered = set(members)
-                        if len(covered) < 2:
-                            continue
+                    # Always with the subject when there is one ("the children
+                    # played", "John is reading": names pass through MT untouched
+                    # and give it the agreement context it needs); without a
+                    # subject, verb plus auxiliaries; never a lone verb.
+                    members = [*core, *subj_tokens]
+                    covered = set(members)
+                    if len(covered) >= 2:
                         lo, hi = min(members), max(members) + 1
                         if all(i in covered or doc[i].is_punct for i in range(lo, hi)):
-                            add(lo, hi, "vp", sent)
-                            break
+                            add(lo, hi, "vp", sent, allow_proper=bool(subj_tokens))
 
                 # prepositional phrase: ADP + object subtree, contiguous
                 if tok.pos_ == "ADP" and tok.dep_ == "prep":
