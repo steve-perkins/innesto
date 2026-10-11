@@ -19,7 +19,7 @@ def test_requires_token(app_env):
     assert anon.get("/api/books").status_code == 401
     assert anon.get("/api/languages").status_code == 401
     assert anon.get("/api/health").status_code == 200
-    assert anon.get("/api/auth/config").json() == {"clientId": "test-client-id", "configured": True}
+    assert anon.get("/api/auth/config").json() == {"clientId": "test-client-id", "configured": True, "allowlistSize": 2}
     anon.headers["Authorization"] = "Bearer not-a-token"
     assert anon.get("/api/books").status_code == 401
     expired = jwt.encode({"sub": TEST_USER["id"], "exp": 1}, "test-secret", algorithm="HS256")
@@ -93,3 +93,21 @@ def test_pre_alembic_database_is_stamped_and_upgraded(tmp_path):
         assert c.execute("SELECT version_num FROM alembic_version").fetchone()[0] == "0002"
         assert c.execute("SELECT title FROM book").fetchone()[0] == "T"
     upgrade(old)   # idempotent
+
+
+def test_allowlist_parsing_and_validation(monkeypatch):
+    from innesto import config
+    assert config.parse_allowlist('"Steve@Example.com", friend@example.com ;other@example.com') == \
+        {"steve@example.com", "friend@example.com", "other@example.com"}
+    assert config.parse_allowlist("") == frozenset()
+    monkeypatch.setattr(config, "IS_PRODUCTION", True)
+    monkeypatch.setattr(config, "GOOGLE_CLIENT_ID", "")
+    monkeypatch.setattr(config, "ALLOWED_EMAILS", frozenset())
+    monkeypatch.delenv("INNESTO_JWT_SECRET", raising=False)
+    problems = config.validate_settings()
+    assert len(problems) == 3 and any("JWT_SECRET" in p for p in problems)
+    monkeypatch.setenv("INNESTO_JWT_SECRET", '"abc"')
+    monkeypatch.setattr(config, "GOOGLE_CLIENT_ID", "x")
+    monkeypatch.setattr(config, "ALLOWED_EMAILS", frozenset({"a@b.c"}))
+    assert config.validate_settings() == []
+    assert config.jwt_secret() == "abc"            # quotes from an env file are tolerated

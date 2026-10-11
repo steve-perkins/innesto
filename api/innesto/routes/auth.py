@@ -37,7 +37,8 @@ class SignInOut(BaseModel):
 @router.get("/config")
 def auth_config() -> dict:
     """Public: what the browser needs to start Google sign-in."""
-    return {"clientId": config.GOOGLE_CLIENT_ID, "configured": bool(config.GOOGLE_CLIENT_ID)}
+    return {"clientId": config.GOOGLE_CLIENT_ID, "configured": bool(config.GOOGLE_CLIENT_ID),
+            "allowlistSize": len(config.ALLOWED_EMAILS)}
 
 
 @router.post("/google")

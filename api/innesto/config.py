@@ -47,10 +47,21 @@ DEFAULT_TARGET = "it"
 # --- Identity --------------------------------------------------------------
 # Google Identity Services client id (public). The frontend fetches it from
 # /api/auth/config so one image serves every environment.
-GOOGLE_CLIENT_ID = os.environ.get("INNESTO_GOOGLE_CLIENT_ID", "")
-# Comma-separated emails allowed to sign in. Empty means nobody can.
-ALLOWED_EMAILS = frozenset(
-    e.strip().lower() for e in os.environ.get("INNESTO_ALLOWED_EMAILS", "").split(",") if e.strip())
+def _env(name: str, default: str = "") -> str:
+    """Environment value with surrounding quotes/whitespace removed: docker
+    env_file passes `X="a"` through verbatim, quotes included."""
+    return os.environ.get(name, default).strip().strip("\"'").strip()
+
+
+def parse_allowlist(value: str) -> frozenset[str]:
+    """Comma-, semicolon- or whitespace-separated emails, case-insensitive."""
+    parts = value.strip().strip("\"'").replace(";", ",").replace(" ", ",").split(",")
+    return frozenset(p.strip().strip("\"'").lower() for p in parts if p.strip().strip("\"'"))
+
+
+GOOGLE_CLIENT_ID = _env("INNESTO_GOOGLE_CLIENT_ID")
+# Emails allowed to sign in. Empty means nobody can.
+ALLOWED_EMAILS = parse_allowlist(os.environ.get("INNESTO_ALLOWED_EMAILS", ""))
 # Tests and one-off CLI runs set this to skip the nightly snapshot thread.
 DISABLE_MAINTENANCE = os.environ.get("INNESTO_DISABLE_MAINTENANCE", "") == "1"
 TOKEN_TTL_DAYS = int(os.environ.get("INNESTO_TOKEN_TTL_DAYS", "7"))
@@ -59,10 +70,23 @@ TOKEN_TTL_DAYS = int(os.environ.get("INNESTO_TOKEN_TTL_DAYS", "7"))
 LEGACY_LOCAL_USER_ID = "local"
 
 
+def validate_settings() -> list[str]:
+    """Problems that make sign-in impossible. In production the app refuses
+    to start on any of them (a 500 at sign-in time is much harder to spot)."""
+    problems: list[str] = []
+    if not GOOGLE_CLIENT_ID:
+        problems.append("INNESTO_GOOGLE_CLIENT_ID is not set (no one can sign in)")
+    if IS_PRODUCTION and not os.environ.get("INNESTO_JWT_SECRET", "").strip().strip("\"'"):
+        problems.append("INNESTO_JWT_SECRET is not set (generate one with: openssl rand -hex 32)")
+    if not ALLOWED_EMAILS:
+        problems.append("INNESTO_ALLOWED_EMAILS is empty (no one can sign in)")
+    return problems
+
+
 def jwt_secret() -> str:
     """Signing key for access tokens. Required in production; in development
     one is generated once and kept in DATA_DIR so sessions survive restarts."""
-    value = os.environ.get("INNESTO_JWT_SECRET", "")
+    value = _env("INNESTO_JWT_SECRET")
     if value:
         return value
     if IS_PRODUCTION:
