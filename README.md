@@ -94,4 +94,5 @@ Innesto avoids copyleft dependencies. Notable third-party components:
 - [wordfreq](https://github.com/rspeer/wordfreq) — code Apache-2.0; data CC BY-SA 4.0 (used at runtime, not redistributed)
 - [CTranslate2](https://github.com/OpenNMT/CTranslate2) — MIT; [sentencepiece](https://github.com/google/sentencepiece) — Apache-2.0
 - [Helsinki-NLP Opus-MT](https://huggingface.co/Helsinki-NLP) translation models — CC BY 4.0
+- [Noto Serif and Noto Sans](https://fonts.google.com/noto) — SIL Open Font License 1.1, bundled in `web/public/fonts` (refresh with `python3 web/scripts/fetch_fonts.py`)
 - FastAPI, SQLModel, lxml, React, Vite, Dexie, zustand — MIT / BSD / Apache-2.0

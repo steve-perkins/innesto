@@ -178,3 +178,5 @@ table.vocab .row-actions button { padding: 4px 8px; font-size: 0.8rem; }
 .reader.immersive .page-arrow { opacity: 0; }
 .reader.immersive:hover .page-arrow { opacity: 0.5; }
 @media (hover: none) { .page-arrow { display: none; } }
+
+.font-preview { font-size: 1.05rem; color: var(--fg); }

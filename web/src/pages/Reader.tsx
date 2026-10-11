@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import Popover from '../reader/Popover'
 import { selectCandidates, type Candidate } from '../reader/selection'
 import { buildTextStream, sha256Hex } from '../reader/textstream'
-import { applyLayout, bookTitle, createView, type Location, type TocItem, type View } from '../reader/view'
+import { applyLayout, bookTitle, createView, ensureFontCss, type Location, type TocItem, type View } from '../reader/view'
 import { swapIdOf, unweave, weave } from '../reader/weave'
 import { getBookFile, loadProgress, saveProgress } from '../store/cache'
 import { useSettings } from '../store/settings'
@@ -157,7 +157,7 @@ export default function Reader() {
         setStatus({ kind: 'loading', text: 'Downloading…' })
         const [blob, sc] = await Promise.all([
           getBookFile(id), loadSidecar(id, settingsRef.current.targetLang),
-          vocabRef.current.load(settingsRef.current.targetLang),
+          vocabRef.current.load(settingsRef.current.targetLang), ensureFontCss(),
         ])
         if (cancelled) return
         setSidecar(sc); sidecarRef.current = sc

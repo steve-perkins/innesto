@@ -1,7 +1,7 @@
 // Wrapper around the vendored foliate-js <foliate-view> custom element.
 import '../../vendor/foliate-js/view.js'
 import type { FoliateBook, View } from '../../vendor/foliate-js/view.js'
-import type { Settings } from '../store/settings'
+import { fontStack, type Settings } from '../store/settings'
 
 export type { Location, TocItem, View } from '../../vendor/foliate-js/view.js'
 
@@ -25,6 +25,19 @@ export function bookTitle(book: FoliateBook | undefined, fallback = 'Untitled'):
   return asText(book?.metadata?.title) || fallback
 }
 
+// Bundled @font-face rules (public/fonts/fonts.css), rewritten with absolute
+// URLs: book sections render in blob: documents, where relative URLs would not
+// resolve to the app origin.
+let fontCss = ''
+let fontCssPromise: Promise<string> | null = null
+export function ensureFontCss(): Promise<string> {
+  fontCssPromise ??= fetch('/fonts/fonts.css')
+    .then((r) => (r.ok ? r.text() : ''))
+    .then((css) => { fontCss = css.replace(/url\(\/fonts\//g, `url(${location.origin}/fonts/`); return fontCss })
+    .catch(() => '')
+  return fontCssPromise
+}
+
 function cssVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
 }
@@ -33,8 +46,13 @@ function cssVar(name: string): string {
 export function bookCss(s: Settings): string {
   const fg = cssVar('--book-fg')
   const link = cssVar('--book-link')
+  const stack = fontStack(s.fontFamily)
+  const fontRule = stack
+    ? `${fontCss}\n    body, body :not(pre, code, kbd, samp, tt, var, svg, math) { font-family: ${stack} !important; }`
+    : ''
   return `
     @namespace epub "http://www.idpf.org/2007/ops";
+    ${fontRule}
     html { color: ${fg}; font-size: ${s.fontSize}% !important; }
     body { color: inherit; background: transparent !important; }
     p, li, dd, blockquote { line-height: ${s.lineHeight} !important; }

@@ -3,10 +3,27 @@ import { persist } from 'zustand/middleware'
 
 export type Theme = 'system' | 'light' | 'dark' | 'sepia'
 export type Flow = 'paginated' | 'scrolled'
+export type FontFamily = 'book' | 'noto-serif' | 'noto-sans'
+
+export const FONT_LABELS: Record<FontFamily, string> = {
+  book: "Book default",
+  'noto-serif': 'Noto Serif',
+  'noto-sans': 'Noto Sans',
+}
+
+/** CSS font-family stack for a setting; null means leave the book's fonts alone. */
+export function fontStack(f: FontFamily): string | null {
+  switch (f) {
+    case 'noto-serif': return "'Noto Serif', Georgia, 'Times New Roman', serif"
+    case 'noto-sans': return "'Noto Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+    default: return null
+  }
+}
 
 export interface Settings {
   theme: Theme
   fontSize: number          // percent of the book's base size
+  fontFamily: FontFamily
   lineHeight: number
   flow: Flow
   // Diglot-weave controls (used from phase 3 on).
@@ -24,6 +41,7 @@ interface SettingsStore extends Settings {
 export const defaultSettings: Settings = {
   theme: 'system',
   fontSize: 100,
+  fontFamily: 'book',
   lineHeight: 1.5,
   flow: 'paginated',
   level: 1,
