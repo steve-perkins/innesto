@@ -1,14 +1,17 @@
-# Local/integrated run: one container, data and models in named volumes.
-# Production (Traefik labels, SSO) is phase 5; this file is the base for it.
+# Local/integrated run of the production image: one container, data and
+# models in named volumes. The VM deployment lives in the separate "docker"
+# repo (service "innesto" there mirrors this, plus Traefik labels).
 services:
   api:
     build: .
-    image: innesto:local
+    image: registry.steveperkins.com/innesto:latest
     ports:
       - "8000:8000"
     volumes:
       - innesto-data:/data
       - innesto-models:/models
+    env_file:
+      - api/.env          # INNESTO_GOOGLE_CLIENT_ID, INNESTO_JWT_SECRET, INNESTO_ALLOWED_EMAILS
     environment:
       INNESTO_TRANSLATION_ENGINE: ct2
     restart: unless-stopped

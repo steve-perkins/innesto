@@ -15,6 +15,10 @@ dependencies = [
   "ctranslate2",
   "sentencepiece",
   "certifi",
+  "google-auth",
+  "PyJWT",
+  "alembic",
+  "python-dotenv",
 ]
 
 [project.optional-dependencies]

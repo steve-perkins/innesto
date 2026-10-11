@@ -45,6 +45,7 @@ Requirements: Python 3.12, Node 20+.
 # one-time setup
 cd api && python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]" && .venv/bin/python -m spacy download en_core_web_sm && cd ..
 cd web && npm install && cd ..
+cp api/.env.example api/.env     # then fill in INNESTO_GOOGLE_CLIENT_ID (see "Sign-in" below)
 
 # run API (http://localhost:8000) and web app (http://localhost:5173) together
 make dev
@@ -84,6 +85,60 @@ runs the pipeline with a stub engine for development.
 
 Import the result from the library card menu ("Import sidecar…") or `POST /api/books/{id}/sidecars`.
 The imported sidecar becomes the active one; earlier ones are kept and can be re-activated.
+
+## Sign-in and access
+
+Innesto uses Google sign-in (Google Identity Services) and admits only the accounts listed in
+`INNESTO_ALLOWED_EMAILS`. The browser gets a Google ID token, exchanges it at `POST /api/auth/google`
+for a 7-day bearer token, and sends that on every API call. There is no other login.
+
+One-time setup in the Google Cloud console (APIs & Services → Credentials):
+
+1. Configure the OAuth consent screen (External, app name "Innesto", your support email).
+2. Create an **OAuth client ID** of type **Web application**. Authorized JavaScript origins:
+   `https://innesto.steveperkins.com` and `http://localhost:5173` (for local dev). No redirect
+   URIs are needed (the popup flow is used).
+3. Put the client id in `api/.env` locally (`INNESTO_GOOGLE_CLIENT_ID=…`, see `api/.env.example`) and
+   in the server's env file (below).
+
+Local dev: `make dev`, open http://localhost:5173, sign in. The first account to sign in inherits any
+library created before sign-in existed (the old implicit "local" user).
+
+To invite someone, add their Google email to `INNESTO_ALLOWED_EMAILS` and restart the container.
+Removing an email locks that person out at their next request.
+
+## Deploying to the VM
+
+The production image bundles the API and the built web app; data (SQLite db, books, sidecars) lives
+in the `innestodata` volume and translation models in `innestomodels` (fetched automatically on
+first start). The VM side lives in the separate `docker` repo (`innesto` service, Traefik labels for
+`innesto.steveperkins.com`, backup entries).
+
+First time:
+
+1. DNS: an A record for `innesto.steveperkins.com` pointing at the VM (Let's Encrypt HTTP-01 needs it).
+2. On the VM, `docker/innesto/innesto.env` from `innesto.env.example` with the client id, a secret
+   from `openssl rand -hex 32`, and the allowlist.
+3. From this repo: `docker login registry.steveperkins.com` then `make release` (builds for
+   linux/amd64 with buildx and pushes `:latest` and `:<git sha>`).
+4. On the VM: `cd ~/docker && docker compose pull innesto && docker compose up -d innesto`, then
+   `docker compose logs -f innesto` while it fetches the models and runs migrations.
+5. Rebuild and push the backup image once (`innestodata` was added to its volume list).
+
+Updates: `make release`, then step 4. Roll back by pinning `image: …/innesto:<previous sha>`.
+
+### Database upgrades, backups and restore
+
+- Schema changes are Alembic migrations in `api/innesto/migrations/versions`; the app applies
+  pending ones at startup, so an image upgrade never needs manual steps. Databases from before
+  Alembic are stamped at the baseline and upgraded in place.
+- Every day at 06:30 UTC (before the VM's 07:00 backup) the app writes a consistent snapshot to
+  `/data/backups/innesto-YYYYMMDD.db` (7 kept) and `innesto-latest.db` using SQLite's online backup
+  API, so the volume tarball always contains a clean copy even if the live file is mid-write.
+- Restore: `docker compose stop innesto`, extract the volume tarball (see the docker repo's
+  `restore.py`) or copy a snapshot in, then
+  `docker compose run --rm innesto python -m innesto.maintenance restore /data/backups/innesto-latest.db`
+  and `docker compose up -d innesto`.
 
 ## Licenses and attributions
 

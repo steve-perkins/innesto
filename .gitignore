@@ -15,3 +15,5 @@ data/
 .DS_Store
 .idea/
 api/tests/fixtures/sample.epub
+# Local secrets
+api/.env

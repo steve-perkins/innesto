@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api, type Book } from '../api/client'
+import CoverImage from '../components/CoverImage'
 import { forgetBook } from '../store/cache'
 import { useSettings } from '../store/settings'
 
@@ -117,7 +118,7 @@ export default function Library() {
                   <div className="cover" onClick={() => navigate(`/read/${b.id}`)} role="button" tabIndex={0}
                        onKeyDown={(e) => e.key === 'Enter' && navigate(`/read/${b.id}`)}>
                     {b.has_cover
-                      ? <img src={api.coverUrl(b.id)} alt="" loading="lazy" />
+                      ? <CoverImage bookId={b.id} title={b.title} />
                       : <div className="placeholder">{b.title}</div>}
                   </div>
                   <div className="meta">

@@ -14,12 +14,14 @@ def utcnow() -> datetime:
 
 
 class User(SQLModel, table=True):
-    id: str = Field(primary_key=True)          # phase 1: "local"; later: OIDC subject
-    email: Optional[str] = None
+    id: str = Field(primary_key=True)          # Google OIDC subject (phase 1 used "local")
+    email: Optional[str] = Field(default=None, index=True, unique=True)
     display_name: Optional[str] = None
+    picture_url: Optional[str] = None
     native_lang: str = "en"
     target_lang: str = "it"
     created_at: datetime = Field(default_factory=utcnow)
+    last_login: Optional[datetime] = None
 
 
 class Book(SQLModel, table=True):

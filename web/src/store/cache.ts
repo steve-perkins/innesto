@@ -2,6 +2,7 @@
 // re-opening a book does not re-download it.
 import Dexie, { type EntityTable } from 'dexie'
 import { api } from '../api/client'
+import { authFetch } from './auth'
 
 interface CachedFile { id: string; blob: Blob; savedAt: number }
 interface CachedProgress { id: string; cfi: string | null; fraction: number; updatedAt: number }
@@ -15,7 +16,7 @@ db.version(1).stores({ files: 'id', progress: 'id' })
 export async function getBookFile(id: string): Promise<Blob> {
   const cached = await db.files.get(id).catch(() => undefined)
   if (cached) return cached.blob
-  const res = await fetch(api.bookFileUrl(id))
+  const res = await authFetch(api.bookFileUrl(id))
   if (!res.ok) throw new Error(`Could not download book (${res.status})`)
   const blob = await res.blob()
   await db.files.put({ id, blob, savedAt: Date.now() }).catch(() => undefined)

@@ -1,5 +1,7 @@
 // Thin typed client for the Innesto API. All paths are relative so the same
 // build works behind the Vite dev proxy and behind the production server.
+// Every call carries the bearer token (see store/auth.ts).
+import { authFetch } from '../store/auth'
 
 export interface Book {
   id: string
@@ -63,7 +65,7 @@ export interface ReadingPosition {
 export interface TocEntry { label: string; href: string; subitems: TocEntry[] }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, init)
+  const res = await authFetch(path, init)
   if (!res.ok) {
     let detail = res.statusText
     try { detail = (await res.json()).detail ?? detail } catch { /* not json */ }
@@ -86,6 +88,7 @@ export const api = {
   deleteBook: (id: string) => request<void>(`/api/books/${id}`, { method: 'DELETE' }),
   bookFileUrl: (id: string) => `/api/books/${id}/file`,
   coverUrl: (id: string) => `/api/books/${id}/cover`,
+  authConfig: () => request<{ clientId: string; configured: boolean }>('/api/auth/config'),
   startJob: (id: string, targetLang: string) =>
     request<Job>(`/api/books/${id}/jobs?target_lang=${encodeURIComponent(targetLang)}`, { method: 'POST' }),
   listSidecars: (id: string) => request<SidecarRow[]>(`/api/books/${id}/sidecars`),

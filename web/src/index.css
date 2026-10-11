@@ -180,3 +180,11 @@ table.vocab .row-actions button { padding: 4px 8px; font-size: 0.8rem; }
 @media (hover: none) { .page-arrow { display: none; } }
 
 .font-preview { font-size: 1.05rem; color: var(--fg); }
+
+/* Login */
+.login { min-height: 100%; display: grid; place-items: center; padding: 24px; }
+.login-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 28px; max-width: 420px; display: grid; gap: 14px; justify-items: center; text-align: center; }
+.small { font-size: 0.8rem; }
+.account { display: flex; align-items: center; gap: 14px; }
+.account .avatar { width: 44px; height: 44px; border-radius: 50%; }
+.account button { margin-left: auto; }

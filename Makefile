@@ -1,4 +1,4 @@
-.PHONY: dev api web test test-api test-web build check-ports
+.PHONY: dev api web test test-api test-web build check-ports release migrate migration
 
 # Run API (port 8000) and web dev server (port 5173, proxies /api to 8000) together.
 dev: check-ports
@@ -33,3 +33,15 @@ test-web:
 
 build:
 	cd web && npm run build
+
+# Build for linux/amd64 and push :latest and :<sha> to the private registry.
+release:
+	scripts/release.sh
+
+# Schema migrations (Alembic). The app also runs `upgrade` at startup.
+migrate:
+	cd api && .venv/bin/alembic upgrade head
+
+# make migration m="add foo column"
+migration:
+	cd api && .venv/bin/alembic revision --autogenerate -m "$(m)"
