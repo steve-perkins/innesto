@@ -77,8 +77,7 @@ def maybe_enqueue(session: Session, book: Book, target_lang: str | None = None) 
     if not target_lang:
         user = session.get(User, current_user_id())
         target_lang = user.target_lang if user else config.DEFAULT_TARGET
-    source = (book.language or "en").split("-")[0].lower()
-    if config.TRANSLATION_ENGINE != "ct2" or provider_available(source, target_lang):
+    if config.TRANSLATION_ENGINE != "ct2" or provider_available(book.source_lang, target_lang):
         jobs.enqueue_job(session, book, target_lang)
 
 

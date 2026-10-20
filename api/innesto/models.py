@@ -13,6 +13,12 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+# ISO 639 special codes that name no actual language (Calibre writes "und"
+# when it doesn't know); treated like a missing dc:language.
+NON_LANGUAGE_CODES = {"und", "mul", "mis", "zxx", "qaa"}
+DEFAULT_SOURCE_LANG = "en"
+
+
 class User(SQLModel, table=True):
     id: str = Field(primary_key=True)          # Google OIDC subject (phase 1 used "local")
     email: Optional[str] = Field(default=None, index=True, unique=True)
@@ -37,6 +43,13 @@ class Book(SQLModel, table=True):
     section_count: int = 0
     has_cover: bool = False
     added_at: datetime = Field(default_factory=utcnow)
+
+    @property
+    def source_lang(self) -> str:
+        """Primary subtag of dc:language ("en-GB" -> "en"), defaulting to
+        English when the EPUB declares none or an undetermined one."""
+        code = (self.language or "").split("-")[0].strip().lower()
+        return code if code and code not in NON_LANGUAGE_CODES else DEFAULT_SOURCE_LANG
 
 
 class Sidecar(SQLModel, table=True):

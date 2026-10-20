@@ -30,3 +30,14 @@ def test_upload_list_progress_delete(app_env, sample_epub):
 def test_rejects_non_epub(app_env):
     r = app_env.post("/api/books", files={"file": ("x.epub", b"not a zip", "application/epub+zip")})
     assert r.status_code == 400
+
+
+def test_source_lang_normalizes_dc_language():
+    from innesto.models import Book
+
+    def lang(value):
+        return Book(id="x", user_id="u", title="t", filename="f", size=0, language=value).source_lang
+
+    assert lang("en-GB") == "en" and lang("FR") == "fr"
+    # Missing or ISO 639 "undetermined"-style codes fall back to English.
+    assert lang(None) == lang("") == lang("und") == lang("mul") == "en"

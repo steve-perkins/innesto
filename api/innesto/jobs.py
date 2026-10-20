@@ -119,7 +119,7 @@ class Worker:
                 return
             job.status, job.updated_at = "running", utcnow()
             session.add(job); session.commit()
-            source_lang = (book.language or "en").split("-")[0].lower()
+            source_lang = book.source_lang
             target_lang = job.target_lang
             book_id = book.id
 
