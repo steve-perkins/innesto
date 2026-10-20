@@ -79,18 +79,28 @@ _TRAILING = _TERMINAL + ",;:"        # "However" -> "Tuttavia,": the comma is al
 _QUOTES = "\"'«»“”‘’"
 _WORD_RE = re.compile(r"\w+", re.UNICODE)
 _LOOP_RE = re.compile(r"(.{2,}?)\1{2,}", re.S)     # a chunk repeated 3+ times in a row
+# Formatting from the parallel corpora the models were trained on, which shows
+# up when a fragment pulls out a memorised line instead of a translation.
+_CORPUS_RES = [
+    re.compile(r"^\w+\.\s*[—–-]\s"),              # Europarl speaker label: "Presidente. — L'ordine del giorno…"
+    re.compile(r"(^|\s)#+(\s|$)|♪"),             # subtitle song lyrics: "# I marvel #"
+    re.compile(r"^[-—–]\s"),                     # subtitle dialogue turn: "- Oh, no."
+]
 
 
 def degenerate(source: str, target: str | None) -> bool:
-    """True when the decoder ran away: a chunk repeated over and over
-    ("milamilamila…", "fan di fan di fan di", "######"), or output far longer
-    than any rendering of the fragment (a hallucinated sentence for "However").
-    Repetition the source itself has ("ha ha ha", "...") does not count."""
+    """True when the output is not a translation of the source: the decoder ran
+    away, repeating a chunk ("milamilamila…", "fan di fan di fan di", "######")
+    or running far longer than any rendering of the fragment (a hallucinated
+    sentence for "However"), or it produced a memorised line marked with
+    training-corpus formatting. Repetition or formatting the source itself has
+    ("ha ha ha", "...", "- Yes") does not count."""
     if not target:
         return False
     if len(target) > 3 * len(source) + 20:
         return True
-    return bool(_LOOP_RE.search(target)) and not _LOOP_RE.search(source)
+    t, s = target.strip(), source.strip()
+    return any(r.search(t) and not r.search(s) for r in (_LOOP_RE, *_CORPUS_RES))
 
 
 def postprocess(source: str, target: str | None) -> str | None:

@@ -81,33 +81,46 @@ def test_runaway_translations_are_dropped():
     assert postprocess("draped over the rover", "#" * 256) is None
     assert postprocess("However", "Tuttavia, la Commissione non è stata in grado di risolvere i problemi.") is None
     assert degenerate("likewise", "allo stesso modo anche allo stesso modo allo stesso modo.")
-    # Repetition the source has, and ordinary expansions, are fine.
+    # Memorised lines carrying training-corpus formatting.
+    assert degenerate("the vote", "Presidente. — La discussione è chiusa.")
+    assert degenerate("I marvel", "# I marvel #")
+    assert degenerate("grimly", "- Oh, no.")
+    # Repetition or formatting the source has, and ordinary expansions, are fine.
     assert postprocess("ha ha ha", "ah ah ah") == "ah ah ah"
+    assert not degenerate("- Yes, sir.", "- Sì, signore.")
+    assert not degenerate("Mr. Chairman", "Signor Presidente")
     assert not degenerate("ad", "annuncio pubblicitario")
     assert not degenerate("of media relations", "de las relaciones entre los medios de comunicación")
 
 
-def test_ct2_retries_runaway_output():
+def test_ct2_retries_unusable_output():
     from types import SimpleNamespace
     from innesto.pipeline.translate.base import SpanRequest
     from innesto.pipeline.translate.ct2 import CT2Provider
 
     outputs = {"thousand": ["mila" * 40], "Thousand": ["Migliaia", "Mille"],
-               "book": ["libro"], "Book": ["Libro"], "x": ["zz" * 50], "X": ["zz" * 50]}
+               "book": ["libro"], "Book": ["Libro"], "x": ["zz" * 50], "X": ["zz" * 50],
+               "neither": ["Non lo so."], "Neither": ["Neither", "Non lo so.", "Nessuno"]}
+    stock = {"Non lo so."}          # as likely from a blank source as from the real one
     calls = []
 
     def translate_batch(tokens, **opts):
         calls.append([t[0] for t in tokens])
         return [SimpleNamespace(hypotheses=[[h] for h in outputs[t[0]]]) for t in tokens]
 
+    def score_batch(sources, targets, **opts):
+        return [SimpleNamespace(log_probs=[-5.0 if s == ["."] or t[0] in stock else -0.5])
+                for s, t in zip(sources, targets)]
+
     p = object.__new__(CT2Provider)
     p.sp_src = SimpleNamespace(encode=lambda s, out_type: [s])
-    p.sp_tgt = SimpleNamespace(decode=lambda h: h[0])
-    p.translator = SimpleNamespace(translate_batch=translate_batch)
+    p.sp_tgt = SimpleNamespace(decode=lambda h: h[0], encode=lambda s, out_type: [s])
+    p.translator = SimpleNamespace(translate_batch=translate_batch, score_batch=score_batch)
 
-    got = p.translate_batch([SpanRequest(t) for t in ("thousand", "book", "x")])
-    assert got == ["migliaia", "libro", None]
-    assert calls == [["thousand", "book", "x"], ["Thousand", "X"], ["x"]]
+    got = p.translate_batch([SpanRequest(t) for t in ("thousand", "book", "x", "neither")])
+    # The copy "Neither" and stock "Non lo so." are passed over for "Nessuno".
+    assert got == ["migliaia", "libro", None, "nessuno"]
+    assert calls == [["thousand", "book", "x", "neither"], ["Thousand", "X", "Neither"], ["x"]]
 
 
 def test_copula_vp_includes_predicate(extractor):
