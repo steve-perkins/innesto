@@ -22,7 +22,7 @@ from .db import engine
 from .models import Book, Job, Sidecar, Translation, utcnow
 from .pipeline.candidates import Extractor
 from .pipeline.sidecar import build_sidecar, write_sidecar
-from .pipeline.translate.base import get_provider
+from .pipeline.translate.base import degenerate, get_provider
 
 log = logging.getLogger("innesto.jobs")
 
@@ -133,8 +133,11 @@ class Worker:
         try:
             provider = get_provider(source_lang, target_lang, config.TRANSLATION_ENGINE)
             with Session(engine()) as s:
+                # Runaway output cached by older builds is left out, so it is
+                # translated again (and overwritten) rather than reused.
                 cache = {t.source: t.target for t in s.exec(
-                    select(Translation).where(Translation.engine == provider.name))}
+                    select(Translation).where(Translation.engine == provider.name))
+                    if not degenerate(t.source, t.target)}
             known = set(cache)
             from .routes.books import book_path
             sidecar = build_sidecar(book_path(book_id), provider, source_lang=source_lang,

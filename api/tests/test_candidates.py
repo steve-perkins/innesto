@@ -70,7 +70,44 @@ def test_postprocess_fits_fragments():
     assert postprocess("dinner", "cena a cena") == "cena"
     assert postprocess("happily", "felicemente felice") == "felicemente"
     assert postprocess("upstairs", "al piano di sopra") == "al piano di sopra"
+    assert postprocess("However", "Tuttavia,") == "Tuttavia"
+    assert postprocess("he said:", "ha detto:") == "ha detto:"
     assert postprocess("x", None) is None
+
+
+def test_runaway_translations_are_dropped():
+    from innesto.pipeline.translate.base import degenerate, postprocess
+    assert postprocess("thousand", "millemila " + "mila" * 60) is None
+    assert postprocess("draped over the rover", "#" * 256) is None
+    assert postprocess("However", "Tuttavia, la Commissione non è stata in grado di risolvere i problemi.") is None
+    assert degenerate("likewise", "allo stesso modo anche allo stesso modo allo stesso modo.")
+    # Repetition the source has, and ordinary expansions, are fine.
+    assert postprocess("ha ha ha", "ah ah ah") == "ah ah ah"
+    assert not degenerate("ad", "annuncio pubblicitario")
+    assert not degenerate("of media relations", "de las relaciones entre los medios de comunicación")
+
+
+def test_ct2_retries_runaway_output():
+    from types import SimpleNamespace
+    from innesto.pipeline.translate.base import SpanRequest
+    from innesto.pipeline.translate.ct2 import CT2Provider
+
+    outputs = {"thousand": ["mila" * 40], "Thousand": ["Migliaia", "Mille"],
+               "book": ["libro"], "Book": ["Libro"], "x": ["zz" * 50], "X": ["zz" * 50]}
+    calls = []
+
+    def translate_batch(tokens, **opts):
+        calls.append([t[0] for t in tokens])
+        return [SimpleNamespace(hypotheses=[[h] for h in outputs[t[0]]]) for t in tokens]
+
+    p = object.__new__(CT2Provider)
+    p.sp_src = SimpleNamespace(encode=lambda s, out_type: [s])
+    p.sp_tgt = SimpleNamespace(decode=lambda h: h[0])
+    p.translator = SimpleNamespace(translate_batch=translate_batch)
+
+    got = p.translate_batch([SpanRequest(t) for t in ("thousand", "book", "x")])
+    assert got == ["migliaia", "libro", None]
+    assert calls == [["thousand", "book", "x"], ["Thousand", "X"], ["x"]]
 
 
 def test_copula_vp_includes_predicate(extractor):

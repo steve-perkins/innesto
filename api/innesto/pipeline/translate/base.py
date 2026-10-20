@@ -75,24 +75,39 @@ def provider_available(source_lang: str, target_lang: str) -> bool:
 
 
 _TERMINAL = ".!?…"
+_TRAILING = _TERMINAL + ",;:"        # "However" -> "Tuttavia,": the comma is already in the text
 _QUOTES = "\"'«»“”‘’"
 _WORD_RE = re.compile(r"\w+", re.UNICODE)
+_LOOP_RE = re.compile(r"(.{2,}?)\1{2,}", re.S)     # a chunk repeated 3+ times in a row
+
+
+def degenerate(source: str, target: str | None) -> bool:
+    """True when the decoder ran away: a chunk repeated over and over
+    ("milamilamila…", "fan di fan di fan di", "######"), or output far longer
+    than any rendering of the fragment (a hallucinated sentence for "However").
+    Repetition the source itself has ("ha ha ha", "...") does not count."""
+    if not target:
+        return False
+    if len(target) > 3 * len(source) + 20:
+        return True
+    return bool(_LOOP_RE.search(target)) and not _LOOP_RE.search(source)
 
 
 def postprocess(source: str, target: str | None) -> str | None:
     """Make fragment translations fit where the fragment came from. MT models
     are trained on sentences and like to add a full stop, capitalise, wrap
     output in quotes, or (for a lone word) repeat themselves. Idempotent, and
-    applied to every translation at sidecar-build time, cached or fresh."""
-    if target is None:
+    applied to every translation at sidecar-build time, cached or fresh.
+    Runaway output is dropped (None): no gloss beats a garbage one."""
+    if target is None or degenerate(source, target):
         return None
     t = target.strip()
     if not t:
         return t
     if t[0] in _QUOTES and t[-1] in _QUOTES and source[:1] not in _QUOTES:
         t = t[1:-1].strip()
-    if source[-1:] not in _TERMINAL:
-        while t and t[-1] in _TERMINAL:
+    if source[-1:] not in _TRAILING:
+        while t and t[-1] in _TRAILING:
             t = t[:-1].rstrip()
     # Single-word source, repetitive output ("cena a cena", "felicemente
     # felice"): cut at the first word that repeats an earlier word's stem.
