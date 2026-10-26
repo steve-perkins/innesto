@@ -32,6 +32,7 @@ export interface Settings {
   swapColor: string
   targetLang: string
   voiceURI: string | null   // preferred TTS voice for the target language
+  keepAwake: boolean        // hold a screen wake lock while the reader is open
 }
 
 interface SettingsStore extends Settings {
@@ -49,6 +50,7 @@ export const defaultSettings: Settings = {
   swapColor: '#2f7d4b',
   targetLang: 'it',
   voiceURI: null,
+  keepAwake: true,
 }
 
 export const useSettings = create<SettingsStore>()(

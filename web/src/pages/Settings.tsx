@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { api, type Language } from '../api/client'
 import { speak, ttsAvailable, voicesFor, voicesReady } from '../reader/tts'
+import { wakeLockSupported } from '../reader/wakeLock'
 import { useAuth } from '../store/auth'
 import { defaultSettings, FONT_LABELS, fontStack, useSettings, type Flow, type FontFamily, type Theme } from '../store/settings'
 
@@ -102,6 +103,16 @@ export default function Settings() {
             <label htmlFor="lineHeight">Line height: {s.lineHeight.toFixed(2)}</label>
             <input id="lineHeight" type="range" min={1.1} max={2.2} step={0.05} value={s.lineHeight}
                    onChange={(e) => s.set({ lineHeight: Number(e.target.value) })} />
+          </div>
+          <div className="field">
+            <label htmlFor="keepAwake">Keep screen awake while reading</label>
+            <input id="keepAwake" type="checkbox" checked={s.keepAwake}
+                   onChange={(e) => s.set({ keepAwake: e.target.checked })} />
+            <div className="hint">
+              {wakeLockSupported()
+                ? 'Stops the screen from dimming or locking while a book is open. Released when you leave the reader or switch apps.'
+                : 'Not available in this browser' + (window.isSecureContext ? '.' : ' over plain http; it works on https.')}
+            </div>
           </div>
           <div className="field">
             <label htmlFor="flow">Layout</label>

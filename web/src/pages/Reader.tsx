@@ -4,6 +4,7 @@ import Popover from '../reader/Popover'
 import { selectCandidates, type Candidate } from '../reader/selection'
 import { buildTextStream, sha256Hex } from '../reader/textstream'
 import { applyLayout, bookTitle, createView, ensureFontCss, type Location, type TocItem, type View } from '../reader/view'
+import { useWakeLock } from '../reader/wakeLock'
 import { swapIdOf, unweave, weave } from '../reader/weave'
 import { getBookFile, loadProgress, saveProgress } from '../store/cache'
 import { useSettings } from '../store/settings'
@@ -216,6 +217,8 @@ export default function Reader() {
   useEffect(() => {
     if (status.kind === 'ready' && viewRef.current) applyLayout(viewRef.current, settings)
   }, [settings, status.kind])
+  // Keep the screen on while the book is open (setting), released on leave.
+  useWakeLock(settings.keepAwake && status.kind === 'ready')
   useEffect(() => {
     if (status.kind === 'ready') reweaveAll()
   }, [settings.level, settings.density, status.kind, reweaveAll])
