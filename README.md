@@ -86,6 +86,14 @@ runs the pipeline with a stub engine for development.
 Import the result from the library card menu ("Import sidecar…") or `POST /api/books/{id}/sidecars`.
 The imported sidecar becomes the active one; earlier ones are kept and can be re-activated.
 
+## Pronunciation voices
+
+Tapping the speaker in a gloss uses the browser's speech synthesis. The voices are supplied by the
+device or browser, not by Innesto, so the target language must be installed there once: on Android via
+Text-to-speech output → Install voice data (silent playback is the usual symptom when it is missing), on
+iOS/macOS under Accessibility → Spoken Content, on Windows by adding the language with text-to-speech.
+Settings → Voice has a per-platform guide and a "Play sample" button that reports what went wrong.
+
 ## Sign-in and access
 
 Innesto uses Google sign-in (Google Identity Services) and admits only the accounts listed in

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { api, type Language } from '../api/client'
 import { speak, ttsAvailable, voicesFor, voicesReady } from '../reader/tts'
 import { wakeLockSupported } from '../reader/wakeLock'
+import VoiceHelp from '../components/VoiceHelp'
 import { useAuth } from '../store/auth'
 import { defaultSettings, FONT_LABELS, fontStack, useSettings, type Flow, type FontFamily, type Theme } from '../store/settings'
 
@@ -37,7 +38,7 @@ function VoicePicker({ lang, value, onChange }: { lang: string; value: string | 
         </select>
         <div className="hint">
           {voices.length === 0
-            ? `No ${lang.toUpperCase()} voice is installed. On macOS/iOS add one under System Settings → Accessibility → Spoken Content; on Android under Text-to-speech output.`
+            ? `No ${lang.toUpperCase()} voice is installed on this device; see "Where do voices come from?" below.`
             : 'Automatic prefers high-quality online voices (Google in Chrome, Microsoft Natural in Edge) and falls back to local voices when offline.'}
         </div>
       </div>
@@ -50,6 +51,7 @@ function VoicePicker({ lang, value, onChange }: { lang: string; value: string | 
         }}>🔊 Play sample</button>
         {note && <div className={`hint${note.startsWith('Played') || note === 'Speaking…' ? '' : ' error'}`}>{note}</div>}
       </div>
+      <VoiceHelp lang={lang} />
     </>
   )
 }
