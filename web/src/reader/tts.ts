@@ -65,24 +65,75 @@ export function pickVoice(lang: string, preferredURI?: string | null): SpeechSyn
   return (preferredURI && list.find((v) => v.voiceURI === preferredURI)) || list[0]
 }
 
-export async function speak(text: string, lang: string, preferredURI?: string | null): Promise<void> {
-  if (!ttsAvailable() || !text.trim()) return
+export interface SpeakResult {
+  ok: boolean
+  /** Human-readable reason when `ok` is false (or a warning when it is true). */
+  note?: string
+  /** Voice actually used, if any. */
+  voice?: string
+}
+
+const LANG_NAMES: Record<string, string> = { it: 'Italian', es: 'Spanish', fr: 'French', de: 'German', pt: 'Portuguese', nl: 'Dutch', en: 'English' }
+
+function explainError(code: string, lang: string): string {
+  const name = LANG_NAMES[lang] ?? lang.toUpperCase()
+  switch (code) {
+    case 'language-unavailable':
+    case 'voice-unavailable':
+      return `The device's speech engine has no ${name} voice. On Android: Settings → Languages & input → Text-to-speech output → engine settings → Install voice data → ${name}.`
+    case 'synthesis-unavailable':
+    case 'synthesis-failed':
+      return 'The device has no working text-to-speech engine (on Android, install "Speech Services by Google").'
+    case 'audio-busy':
+    case 'audio-hardware':
+      return 'The audio device is busy or unavailable; close other apps using sound and try again.'
+    case 'not-allowed':
+      return 'The browser blocked speech; tap the speaker button again directly.'
+    case 'network':
+      return 'This voice needs an internet connection; choose a local voice in Settings or reconnect.'
+    case 'interrupted':
+    case 'canceled':
+      return ''
+    default:
+      return `Speech failed (${code}).`
+  }
+}
+
+/** Speak `text`; resolves when playback starts, ends or fails, with a diagnosis. */
+export async function speak(text: string, lang: string, preferredURI?: string | null): Promise<SpeakResult> {
+  if (!ttsAvailable()) return { ok: false, note: 'This browser has no speech synthesis.' }
+  if (!text.trim()) return { ok: false, note: 'Nothing to say.' }
   await voicesReady()
-  const start = () => {
-    const u = new SpeechSynthesisUtterance(text)
-    u.lang = bcp47(lang)
-    const voice = pickVoice(lang, preferredURI)
-    if (voice) { u.voice = voice; u.lang = voice.lang }
-    else console.warn(`Innesto: no ${lang} voice installed; the browser default will be used`)
-    u.rate = 0.9
-    u.onend = u.onerror = () => { if (current === u) current = null }
-    current = u
-    speechSynthesis.speak(u)
-  }
-  if (speechSynthesis.speaking || speechSynthesis.pending) {
-    speechSynthesis.cancel()
-    window.setTimeout(start, 80)      // let the cancel settle before the next speak()
-  } else {
-    start()
-  }
+  const voice = pickVoice(lang, preferredURI)
+  const name = LANG_NAMES[lang] ?? lang.toUpperCase()
+  const noVoiceNote = voice ? undefined
+    : `No ${name} voice is installed on this device, so the default voice is used. ` + explainError('language-unavailable', lang)
+
+  return new Promise<SpeakResult>((resolve) => {
+    const start = () => {
+      const u = new SpeechSynthesisUtterance(text)
+      u.lang = bcp47(lang)
+      if (voice) { u.voice = voice; u.lang = voice.lang }
+      u.rate = 0.9
+      let settled = false
+      const done = (result: SpeakResult) => { if (!settled) { settled = true; resolve(result) } }
+      u.onstart = () => done({ ok: true, note: noVoiceNote, voice: voice?.name })
+      u.onend = () => { if (current === u) current = null; done({ ok: true, note: noVoiceNote, voice: voice?.name }) }
+      u.onerror = (e) => {
+        if (current === u) current = null
+        const note = explainError(e.error, lang)
+        if (note) done({ ok: false, note, voice: voice?.name }); else done({ ok: true, voice: voice?.name })
+      }
+      current = u
+      speechSynthesis.speak(u)
+      // Some engines never fire start/end/error when they silently do nothing.
+      window.setTimeout(() => done({ ok: false, note: noVoiceNote ?? 'The speech engine did not respond. ' + explainError('synthesis-unavailable', lang), voice: voice?.name }), 4000)
+    }
+    if (speechSynthesis.speaking || speechSynthesis.pending) {
+      speechSynthesis.cancel()
+      window.setTimeout(start, 80)      // let the cancel settle before the next speak()
+    } else {
+      start()
+    }
+  })
 }

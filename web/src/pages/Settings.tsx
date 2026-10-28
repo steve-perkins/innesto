@@ -10,6 +10,7 @@ const LEVELS = ['', 'A1 · common words', 'A2 · simple phrases', 'B1 · verb ph
 
 function VoicePicker({ lang, value, onChange }: { lang: string; value: string | null; onChange: (v: string | null) => void }) {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
+  const [note, setNote] = useState<string | null>(null)
   useEffect(() => {
     if (!ttsAvailable()) return
     const update = () => setVoices(voicesFor(lang))
@@ -42,7 +43,12 @@ function VoicePicker({ lang, value, onChange }: { lang: string; value: string | 
       </div>
       <div className="field">
         <label>Test</label>
-        <button onClick={() => speak(SAMPLES[lang] ?? 'John is reading a book.', lang, value)}>🔊 Play sample</button>
+        <button onClick={() => {
+          setNote('Speaking…')
+          void speak(SAMPLES[lang] ?? 'John is reading a book.', lang, value)
+            .then((r) => setNote(r.ok ? `Played with ${r.voice ?? 'the default voice'}.${r.note ? ' ' + r.note : ''}` : r.note ?? 'Speech failed.'))
+        }}>🔊 Play sample</button>
+        {note && <div className={`hint${note.startsWith('Played') || note === 'Speaking…' ? '' : ' error'}`}>{note}</div>}
       </div>
     </>
   )

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSettings } from '../store/settings'
 import { useVocab } from '../store/vocab'
 import { speak, ttsAvailable } from './tts'
@@ -21,6 +21,7 @@ export default function Popover({ candidate, anchor, targetLang, onClose }: Popo
   const ref = useRef<HTMLDivElement>(null)
   const vocab = useVocab()
   const voiceURI = useSettings((s) => s.voiceURI)
+  const [speechNote, setSpeechNote] = useState<string | null>(null)
   const lemmas = candidate.targetLemmas ?? []
   const allKnown = lemmas.length > 0 && lemmas.every((l) => vocab.known.has(l))
   const anyLearning = lemmas.some((l) => vocab.learning.has(l))
@@ -51,10 +52,14 @@ export default function Popover({ candidate, anchor, targetLang, onClose }: Popo
         <div className="popover-target" lang={targetLang}>{candidate.translation}</div>
         {ttsAvailable() && (
           <button className="icon" title="Pronounce" aria-label="Pronounce"
-                  onClick={() => speak(candidate.translation ?? '', targetLang, voiceURI)}>🔊</button>
+                  onClick={() => {
+                    setSpeechNote(null)
+                    void speak(candidate.translation ?? '', targetLang, voiceURI).then((r) => setSpeechNote(r.note ?? null))
+                  }}>🔊</button>
         )}
       </div>
       <div className="popover-source">{candidate.text}</div>
+      {speechNote && <div className="speech-note">{speechNote}</div>}
       <div className="popover-lemmas muted">
         {lemmas.length ? lemmas.join(' · ') : candidate.lemmas.join(' · ')}
         <span className="popover-kind"> · {KIND_LABEL[candidate.kind]} · level {candidate.level}</span>
