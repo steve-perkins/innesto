@@ -20,7 +20,7 @@ const GUIDES: { id: Platform; title: string; steps: string[] }[] = [
     title: 'Android (Chrome, or the installed app)',
     steps: [
       'Voices come from the system text-to-speech engine, not from Chrome. Without the language installed, playback is often silent with no error.',
-      'Settings → General management (Samsung) or System → Languages & input → Text-to-speech output.',
+      'Settings → General management → Language → Text-to-speech output (Samsung One UI), or Settings → System → Languages & input → Text-to-speech output (other Android devices).',
       'Preferred engine: "Speech Services by Google" (install it from the Play Store if it is missing; the Samsung engine also works).',
       'Tap the engine\'s settings (gear) → Install voice data → choose the language → download a voice.',
       'Use the Play button on that screen to confirm it speaks, then come back here and press "Play sample".',
